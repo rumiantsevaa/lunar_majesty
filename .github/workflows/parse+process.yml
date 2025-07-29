@@ -40,34 +40,41 @@ jobs:
           PA_PASSWORD: ${{ secrets.PA_PASSWORD }}
           MOON_JSON: ${{ env.MOON_JSON }}
         run: |
-          echo "🚀 Запуск бота..."
+          echo "🚀 Запуск бота с обработкой данных..."
           python bot_launcher.py
-          echo "✅ Бот завершил работу"
 
-      - name: Wait for result file (optional)
+      - name: Verify processed file
         run: |
-          echo "⏳ Ожидание создания файла результата..."
-          for i in {1..30}; do
-            if [ -f "moon_data_processed.json" ]; then
-              echo "✅ Файл результата найден!"
-              break
-            fi
-            echo "⏳ Попытка $i/30 - файл не найден, ожидание..."
-            sleep 2
-          done
-        continue-on-error: true
+          if [ -f "moon_data_processed.json" ]; then
+            echo "✅ Обработанный файл создан успешно!"
+            echo "📊 Размер файла: $(wc -c < moon_data_processed.json) байт"
+            echo "📝 Первые 200 символов:"
+            head -c 200 moon_data_processed.json
+            echo ""
+            echo "..."
+          else
+            echo "❌ Обработанный файл не найден"
+            ls -la *.json || echo "Нет JSON файлов"
+          fi
 
       - name: Upload processed result
+        if: always()
         uses: actions/upload-artifact@v4
         with:
           name: moon-data-processed
           path: |
             moon_data.json
             moon_data_processed.json
-        continue-on-error: true
+          retention-days: 30
 
       - name: Show final status
+        if: always()
         run: |
           echo "📋 Итоговый статус:"
           ls -la *.json || echo "Нет JSON файлов"
+          if [ -f "moon_data_processed.json" ]; then
+            echo "✅ Обработка завершена успешно!"
+          else
+            echo "⚠️ Обработанный файл не создан"
+          fi
           echo "✅ Workflow завершен"
