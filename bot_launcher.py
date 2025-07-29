@@ -14,7 +14,6 @@ def wait_and_click(driver, by, value, timeout=10):
     for _ in range(timeout * 2):
         try:
             element = driver.find_element(by, value)
-            driver.execute_script("arguments[0].scrollIntoView();", element)
             element.click()
             return
         except:
@@ -31,14 +30,6 @@ def wait_and_type(driver, by, value, text, timeout=10):
         except:
             time.sleep(0.5)
     raise Exception(f"Field not found: {value}")
-
-def wait_for_element(driver, by, value, timeout=10):
-    for _ in range(timeout * 2):
-        try:
-            return driver.find_element(by, value)
-        except:
-            time.sleep(0.5)
-    raise Exception(f"Element not found: {value}")
 
 def run():
     print("🚀 Запуск бота...")
@@ -64,9 +55,6 @@ def run():
     options.headless = True
     options.add_argument("--no-sandbox")
     options.add_argument("--disable-dev-shm-usage")
-    options.add_argument("--disable-gpu")
-    options.add_argument("--disable-web-security")
-    options.add_argument("--allow-running-insecure-content")
 
     print("🌐 Запуск Chrome...")
     driver = uc.Chrome(options=options)
@@ -86,35 +74,27 @@ def run():
         driver.get(f"https://www.pythonanywhere.com/user/{USERNAME}/files/home/{USERNAME}/moon_data.json?edit")
         time.sleep(5)
         
-        # Переключение на iframe редактора
-        print("🔄 Поиск iframe редактора...")
-        iframe = wait_for_element(driver, By.ID, "id_file_editor_iframe")
-        driver.switch_to.frame(iframe)
-        time.sleep(3)
-        
-        # Находим текстовый редактор
-        print("🔍 Поиск текстового редактора...")
-        editor = wait_for_element(driver, By.CSS_SELECTOR, "textarea.ace_text-input")
-        
-        # Вставка данных
-        print("📋 Вставка данных JSON...")
-        actions = ActionChains(driver)
-        actions.move_to_element(editor).click().perform()
+        # Фокус на странице (редактор уже активен)
+        body = driver.find_element(By.TAG_NAME, 'body')
+        body.click()
         time.sleep(1)
         
-        # Ctrl+A (выделить всё) и удалить
+        # Выделить всё и удалить
+        print("📋 Очистка редактора...")
+        actions = ActionChains(driver)
         actions.key_down(Keys.CONTROL).send_keys('a').key_up(Keys.CONTROL).perform()
         actions.send_keys(Keys.DELETE).perform()
         time.sleep(1)
         
         # Вставка новых данных
-        editor.send_keys(MOON_JSON)
+        print("📋 Вставка данных JSON...")
+        body.send_keys(MOON_JSON)
         time.sleep(2)
         
-        # Ctrl+S (сохранить)
+        # Сохранение файла
+        print("💾 Сохранение файла...")
         actions.key_down(Keys.CONTROL).send_keys('s').key_up(Keys.CONTROL).perform()
         time.sleep(3)
-        driver.switch_to.default_content()
         print("✅ Файл moon_data.json сохранен")
 
         # 3. Работа с консолью
@@ -137,7 +117,7 @@ def run():
         time.sleep(2)
         open_link = driver.find_element(By.CSS_SELECTOR, f'a[href="/user/{USERNAME}/consoles/bash//home/{USERNAME}/new"]')
         open_link.click()
-        time.sleep(15)  # Долгая загрузка консоли
+        time.sleep(15)
 
         # Выполнение команды
         print("⚡ Запуск обработчика данных...")
@@ -145,23 +125,14 @@ def run():
         time.sleep(5)
         
         body = driver.find_element(By.TAG_NAME, "body")
-        actions = ActionChains(driver)
-        actions.move_to_element(body).click().perform()
+        body.click()
         time.sleep(1)
         
-        # Ввод команды с несколькими попытками
-        for attempt in range(3):
-            try:
-                body.send_keys(Keys.CONTROL + 'a')
-                body.send_keys(Keys.DELETE)
-                time.sleep(1)
-                body.send_keys('python3 pythonanywhere_starter.py')
-                time.sleep(1)
-                body.send_keys(Keys.ENTER)
-                time.sleep(1)
-                break
-            except:
-                time.sleep(2)
+        # Ввод команды
+        body.send_keys('python3 pythonanywhere_starter.py')
+        time.sleep(1)
+        body.send_keys(Keys.ENTER)
+        time.sleep(1)
         
         print("⏳ Ожидание обработки данных (20 секунд)...")
         time.sleep(20)
@@ -173,33 +144,34 @@ def run():
         driver.get(f"https://www.pythonanywhere.com/user/{USERNAME}/files/home/{USERNAME}/moon_data_processed.json?edit")
         time.sleep(5)
         
-        # Переключение на iframe редактора
-        iframe = wait_for_element(driver, By.ID, "id_file_editor_iframe")
-        driver.switch_to.frame(iframe)
-        time.sleep(3)
-        
-        # Получение содержимого через Ace Editor
+        # Получение содержимого через Ctrl+A, Ctrl+C
         print("📋 Получение обработанных данных...")
-        processed_content = driver.execute_script("""
-            try {
-                var editor = ace.edit(document.querySelector('.ace_editor'));
-                return editor.getValue();
-            } catch(e) {
-                return '';
-            }
-        """)
+        body = driver.find_element(By.TAG_NAME, 'body')
+        body.click()
+        time.sleep(1)
         
+        actions = ActionChains(driver)
+        actions.key_down(Keys.CONTROL).send_keys('a').key_up(Keys.CONTROL).perform()
+        time.sleep(1)
+        actions.key_down(Keys.CONTROL).send_keys('c').key_up(Keys.CONTROL).perform()
+        time.sleep(1)
+        
+        # Получаем текст из буфера обмена
+        try:
+            from pyperclip import paste
+            processed_content = paste()
+        except:
+            processed_content = ""
+            print("⚠️ Не удалось получить данные из буфера обмена")
+
         if not processed_content:
-            # Альтернативный способ через textarea
-            editor = driver.find_element(By.CSS_SELECTOR, "textarea.ace_text-input")
-            processed_content = editor.get_attribute('value')
-        
-        driver.switch_to.default_content()
+            # Альтернативный способ через JavaScript
+            processed_content = driver.execute_script("return document.querySelector('.ace_content').innerText")
         
         if not processed_content:
             raise Exception("Не удалось получить содержимое обработанного файла")
 
-        # 5. Сохранение результата для GitHub Actions
+        # 5. Сохранение результата
         print("💾 Сохранение результата...")
         with open('moon_data_processed.json', 'w', encoding='utf-8') as f:
             f.write(processed_content)
