@@ -1,4 +1,5 @@
 import json
+import sys
 import undetected_chromedriver as uc
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
@@ -107,13 +108,9 @@ if __name__ == "__main__":
         data.update(moon_dream_dictionary(driver))
         data.update(day_inspiration(driver))
         
-        # Убираем pretty print для GitHub Actions
-        print(json.dumps(data, ensure_ascii=False))
+        print(json.dumps(data, ensure_ascii=False, indent=2))
     except Exception as e:
         print(f"Error: {str(e)}", file=sys.stderr)
         exit(1)
-    finally:
-        driver.quit()
-        print(json.dumps(data, ensure_ascii=False, indent=2))
     finally:
         driver.quit()
