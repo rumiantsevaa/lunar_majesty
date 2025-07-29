@@ -108,7 +108,9 @@ if __name__ == "__main__":
         data.update(moon_dream_dictionary(driver))
         data.update(day_inspiration(driver))
         
-        print(json.dumps(data, ensure_ascii=False, indent=2))
+        # Single JSON output with proper formatting
+        json_output = json.dumps(data, ensure_ascii=False, indent=2)
+        print(json_output)
     except Exception as e:
         print(f"Error: {str(e)}", file=sys.stderr)
         exit(1)
