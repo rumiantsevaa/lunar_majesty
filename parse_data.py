@@ -50,6 +50,7 @@ def moon_dream_dictionary(driver):
 
 
 
+
 def day_inspiration(driver):
     driver.get("https://www.greatday.com/")
     try:
