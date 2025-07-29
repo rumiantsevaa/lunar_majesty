@@ -1,0 +1,163 @@
+@font-face {
+  font-family: 'LunarTitleFont';
+  src: url('../fonts/AMANE.otf') format('opentype');
+}
+
+@font-face {
+  font-family: 'CardTitleFont';
+  src: url('../fonts/AMANE.otf') format('opentype');
+}
+
+@font-face {
+  font-family: 'CardContentFont';
+  src: url('../fonts/kudry_weird-headline.otf') format('opentype');
+}
+
+/* Общие переменные */
+:root {
+  --silver-light: #f0f0f0;
+  --silver-mid: #ccc;
+  --silver-dark: #999;
+  --silver-white: #fff;
+  --silver-gradient: linear-gradient(135deg, #f0f0f0 0%, #aaa 40%, #ddd 60%, #fff 100%);
+  --text-shadow: 
+    0 0 4px rgba(255,255,255,0.2),
+    1px 1px 2px rgba(255,255,255,0.2);
+  --glow-shadow: 
+    0 0 10px rgba(255, 255, 255, 0.1),
+    inset 0 0 10px rgba(255, 255, 255, 0.05);
+}
+
+body {
+  margin: 0;
+  padding: 0;
+  background-color: #000;
+  color: var(--silver-mid);
+  font-family: 'CardContentFont', sans-serif;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: start;
+  min-height: 100vh;
+  padding-top: 3rem;
+}
+
+/* Cеребряный эффект */
+.silver-text {
+  background: var(--silver-gradient);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  text-shadow: var(--text-shadow);
+}
+
+/* Заголовок страницы */
+.main-title {
+  font-size: 1.5rem;
+  text-align: center;
+  margin-bottom: 2rem;
+  font-family: 'LunarTitleFont', sans-serif;
+  font-style: italic; 
+}
+.main-title.silver-text {
+  font-weight: bold;
+}
+
+/* === Контейнер карточек === */
+.carousel-container {
+  position: relative;
+  width: 90%;
+  max-width: 400px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Сама карточка */
+.carousel-card {
+  border: 0.7px solid transparent;
+  border-image: linear-gradient(145deg, #aaa, #fff, #aaa) 1;
+  border-radius: 1rem;
+  background-color: #000;
+  text-align: center;
+  min-height: 300px;
+  width: 100%;
+  box-sizing: border-box;
+  box-shadow: var(--glow-shadow);
+  transition: all 0.3s ease;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.carousel-card:hover {
+  box-shadow:
+    0 0 20px rgba(255, 255, 255, 0.2),
+    inset 0 0 20px rgba(255, 255, 255, 0.1);
+}
+
+/* Название карточки */
+.card-title {
+  font-size: 1rem;
+  font-family: 'CardTitleFont', sans-serif;
+}
+
+/* Содержимое карточки */
+.card-content {
+  font-size: 1rem;
+  font-family: 'CardContentFont', sans-serif;
+  color: var(--silver-light);
+}
+
+/* Стрелки-кавычки */
+.arrow {
+  background: none;
+  border: none;
+  color: var(--silver-light);
+  font-size: 2rem;
+  cursor: pointer;
+  padding: 0 1rem;
+  user-select: none;
+  text-shadow: var(--text-shadow);
+  transition: transform 0.2s ease;
+  font-family: 'CardContentFont', sans-serif;
+  position: relative;
+}
+
+.arrow.left::before {
+  content: '«';
+  display: inline-block;
+}
+
+.arrow.right::before {
+  content: '»';
+  display: inline-block;
+}
+
+.arrow:hover {
+  transform: scale(1.2);
+  color: var(--silver-white);
+  text-shadow:
+    0 0 8px rgba(255,255,255,0.4),
+    1px 1px 2px rgba(255,255,255,0.3);
+}
+
+.arrow:focus {
+  outline: none;
+}
+
+/* Футер */
+.site-footer {
+  font-size: 0.7rem;
+  font-family: 'CardTitleFont', sans-serif;
+  width: 100%;
+  margin-top: auto;
+  text-align: center;
+  position: fixed;
+  bottom: 0;
+}
+
+.site-footer p {
+  margin: 0;
+  color: var(--silver-mid);
+  font-style: italic;
+}
