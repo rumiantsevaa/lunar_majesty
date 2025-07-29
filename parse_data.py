@@ -3,7 +3,6 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 
-
 def moon_today_description(driver):
     driver.get("https://www.timeanddate.com/moon/phases/ukraine/kyiv")
     table_rows = driver.find_elements(By.CSS_SELECTOR, "table.table--left tr")
@@ -26,7 +25,6 @@ def moon_today_description(driver):
 
 
 def moon_dream_dictionary(driver):
-    from bs4 import BeautifulSoup
 
     driver.get("https://rivendel.ru/dream_lenta.php")
     soup = BeautifulSoup(driver.page_source, "html.parser")
