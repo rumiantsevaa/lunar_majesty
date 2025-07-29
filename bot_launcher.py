@@ -1,93 +1,118 @@
-import json
-import sys
-import time
 import os
-import pyperclip
-
+import time
+import json
 from selenium.webdriver.common.by import By
 from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.common.action_chains import ActionChains
-from selenium.webdriver.support.ui import WebDriverWait
-from selenium.webdriver.support import expected_conditions as EC
 import undetected_chromedriver as uc
 
 USERNAME = os.getenv("PA_USERNAME")
 PASSWORD = os.getenv("PA_PASSWORD")
 
-if not USERNAME or not PASSWORD:
-    raise ValueError("Не найдены переменные среды PA_USERNAME или PA_PASSWORD")
+MOON_DATA = os.getenv("MOON_JSON_TO_WRITE", "NO_DATA_FOUND")
 
-# Получаем stdin как строку
-json_input = sys.stdin.read()
+def wait_and_click(driver, by, value, timeout=10):
+    for _ in range(timeout * 2):
+        try:
+            driver.find_element(by, value).click()
+            return
+        except:
+            time.sleep(0.5)
+    raise Exception(f"Element not found: {value}")
 
-# Настройки для headless
-options = uc.ChromeOptions()
-options.add_argument("--headless")
-options.add_argument("--no-sandbox")
-options.add_argument("--disable-dev-shm-usage")
-options.add_argument("--disable-gpu")
+def wait_and_type(driver, by, value, text, timeout=10):
+    for _ in range(timeout * 2):
+        try:
+            el = driver.find_element(by, value)
+            el.clear()
+            el.send_keys(text)
+            return
+        except:
+            time.sleep(0.5)
+    raise Exception(f"Field not found: {value}")
 
-driver = uc.Chrome(options=options)
-wait = WebDriverWait(driver, 20)
+def run():
+    options = uc.ChromeOptions()
+    options.headless = True
+    options.add_argument("--no-sandbox")
+    options.add_argument("--disable-dev-shm-usage")
+    driver = uc.Chrome(options=options)
 
-# Вход на PythonAnywhere
-driver.get("https://www.pythonanywhere.com/login/")
-wait.until(EC.presence_of_element_located((By.NAME, "username"))).send_keys(USERNAME)
-driver.find_element(By.NAME, "password").send_keys(PASSWORD + Keys.RETURN)
+    # 1. Вход в PythonAnywhere
+    driver.get("https://www.pythonanywhere.com/login/")
+    wait_and_type(driver, By.ID, "id_auth-username", USERNAME)
+    wait_and_type(driver, By.ID, "id_auth-password", PASSWORD)
+    wait_and_click(driver, By.ID, "id_next")
+    time.sleep(3)
 
-# Переход к редактору moon_data.json
-driver.get(f"https://www.pythonanywhere.com/user/{USERNAME}/files/home/{USERNAME}")
-edit_link = wait.until(EC.element_to_be_clickable((
-    By.CSS_SELECTOR,
-    f'a[href="/user/{USERNAME}/files/home/{USERNAME}/moon_data.json?edit"]'
-)))
-edit_link.click()
+    # 2. Удаляем старые консоли
+    driver.get(f"https://www.pythonanywhere.com/user/{USERNAME}/consoles/")
+    time.sleep(3)
+    for btn in driver.find_elements(By.CSS_SELECTOR, 'span.glyphicon-remove'):
+        try:
+            btn.click()
+            time.sleep(1)
+        except:
+            pass
 
-# Вставка json в редактор
-time.sleep(2)
-editor = wait.until(EC.presence_of_element_located((By.TAG_NAME, "textarea")))
-editor.click()
-actions = ActionChains(driver)
-actions.key_down(Keys.CONTROL).send_keys("a").key_up(Keys.CONTROL).perform()
-pyperclip.copy(json_input)
-actions.key_down(Keys.CONTROL).send_keys("v").key_up(Keys.CONTROL).perform()
+    # 3. Открываем файл moon_data.json и записываем в него
+    driver.get(f"https://www.pythonanywhere.com/user/{USERNAME}/files/home/{USERNAME}/moon_data.json")
+    time.sleep(3)
+    driver.switch_to.frame(driver.find_element(By.ID, "id_file_editor_iframe"))
+    time.sleep(2)
+    body = driver.find_element(By.TAG_NAME, "body")
+    actions = ActionChains(driver)
+    actions.move_to_element(body).click().perform()
+    actions.key_down(Keys.CONTROL).send_keys('a').key_up(Keys.CONTROL).perform()
+    actions.send_keys(MOON_DATA).perform()
+    actions.key_down(Keys.CONTROL).send_keys('s').key_up(Keys.CONTROL).perform()
+    time.sleep(2)
+    driver.switch_to.default_content()
 
-# Сохраняем (Ctrl+S)
-actions.key_down(Keys.CONTROL).send_keys("s").key_up(Keys.CONTROL).perform()
-time.sleep(3)
+    # 4. Запускаем новую консоль
+    driver.get(f"https://www.pythonanywhere.com/user/{USERNAME}/files/home/{USERNAME}")
+    time.sleep(2)
+    driver.find_element(By.CSS_SELECTOR, f'a[href="/user/{USERNAME}/consoles/bash//home/{USERNAME}/new"]').click()
+    time.sleep(10)
 
-# Открытие новой консоли и запуск скрипта
-driver.get(f"https://www.pythonanywhere.com/user/{USERNAME}/consoles/")
-open_console = wait.until(EC.element_to_be_clickable((
-    By.CSS_SELECTOR,
-    f'a[href="/user/{USERNAME}/consoles/bash//home/{USERNAME}/new"]'
-)))
-open_console.click()
+    driver.switch_to.frame(driver.find_element(By.ID, "id_console"))
+    time.sleep(5)
+    body = driver.find_element(By.TAG_NAME, "body")
+    ActionChains(driver).move_to_element(body).click().send_keys("python3 pythonanywhere_starter.py").send_keys(Keys.ENTER).perform()
 
-time.sleep(10)
-driver.switch_to.frame(driver.find_element(By.ID, "id_console"))
-body = driver.find_element(By.TAG_NAME, "body")
-actions = ActionChains(driver)
-actions.move_to_element(body).click().send_keys("python3 pythonanywhere_starter.py", Keys.ENTER).perform()
-time.sleep(20)
-driver.switch_to.default_content()
+    time.sleep(15)  # подождём выполнения скрипта
+    
+    # 5. Открываем файл moon_data_processed.json
+    driver = uc.Chrome(options=options)  # Новый экземпляр, чтобы не использовать консольный фрейм
+    driver.get("https://www.pythonanywhere.com/login/")
+    wait_and_type(driver, By.ID, "id_auth-username", USERNAME)
+    wait_and_type(driver, By.ID, "id_auth-password", PASSWORD)
+    wait_and_click(driver, By.ID, "id_next")
+    time.sleep(3)
 
-# Открытие обработанного файла
-driver.get(f"https://www.pythonanywhere.com/user/{USERNAME}/files/home/{USERNAME}")
-processed_link = wait.until(EC.element_to_be_clickable((
-    By.CSS_SELECTOR,
-    f'a[href="/user/{USERNAME}/files/home/{USERNAME}/moon_data_processed.json?edit"]'
-)))
-processed_link.click()
+    driver.get(f"https://www.pythonanywhere.com/user/{USERNAME}/files/home/{USERNAME}")
+    time.sleep(3)
 
-# Копируем результат
-editor = wait.until(EC.presence_of_element_located((By.TAG_NAME, "textarea")))
-editor.click()
-actions.key_down(Keys.CONTROL).send_keys("a").key_up(Keys.CONTROL).perform()
-actions.key_down(Keys.CONTROL).send_keys("c").key_up(Keys.CONTROL).perform()
-time.sleep(2)
+    processed_file_selector = f'a[href="/user/{USERNAME}/files/home/{USERNAME}/moon_data_processed.json?edit"]'
+    wait_and_click(driver, By.CSS_SELECTOR, processed_file_selector)
+    time.sleep(3)
 
-result_text = editor.get_attribute("value")
-print(result_text)
+    # 6. Копируем содержимое textarea
+    driver.switch_to.frame(driver.find_element(By.ID, "id_file_editor_iframe"))
+    time.sleep(2)
 
-driver.quit()
+    editor = driver.find_element(By.TAG_NAME, "textarea")
+    editor.click()
+    actions = ActionChains(driver)
+    actions.key_down(Keys.CONTROL).send_keys('a').key_up(Keys.CONTROL).perform()
+    actions.key_down(Keys.CONTROL).send_keys('c').key_up(Keys.CONTROL).perform()
+    time.sleep(2)
+
+    result_text = editor.get_attribute("value")
+    print(result_text)
+
+    driver.quit()
+
+    
+
+run()
