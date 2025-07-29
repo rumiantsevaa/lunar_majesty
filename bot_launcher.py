@@ -1,6 +1,7 @@
 import os
 import time
 import json
+import shutil
 import undetected_chromedriver as uc
 from selenium.webdriver.common.by import By
 from selenium.webdriver.common.keys import Keys
@@ -192,6 +193,11 @@ def run():
 
         print(f"✅ Файл moon_data_processed.json прочитан ({len(processed_content)} символов)")
         print(f"📝 Предварительный просмотр: {processed_content[:200]}...")
+
+        # Перемещаем файл в рабочую директорию, чтобы GitHub Actions его увидел
+        dest_path = os.path.join(os.getcwd(), "moon_data_processed.json")
+        shutil.copy(local_filename, dest_path)
+        print(f"✅ Файл скопирован в рабочую директорию: {dest_path}")
         
     except Exception as e:
         print(f"❌ ОШИБКА: {e}")
