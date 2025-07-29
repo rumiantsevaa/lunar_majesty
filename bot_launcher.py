@@ -15,10 +15,10 @@ def wait_and_click(driver, by, value, timeout=10):
         try:
             element = driver.find_element(by, value)
             element.click()
-            return
+            return True
         except:
             time.sleep(0.5)
-    raise Exception(f"Element not found: {value}")
+    return False
 
 def wait_and_type(driver, by, value, text, timeout=10):
     for _ in range(timeout * 2):
@@ -26,10 +26,10 @@ def wait_and_type(driver, by, value, text, timeout=10):
             el = driver.find_element(by, value)
             el.clear()
             el.send_keys(text)
-            return
+            return True
         except:
             time.sleep(0.5)
-    raise Exception(f"Field not found: {value}")
+    return False
 
 def run():
     print("🚀 Запуск бота...")
@@ -55,6 +55,7 @@ def run():
     options.headless = True
     options.add_argument("--no-sandbox")
     options.add_argument("--disable-dev-shm-usage")
+    options.add_argument("--window-size=1920,1080")  # Добавляем фиксированный размер окна
 
     print("🌐 Запуск Chrome...")
     driver = uc.Chrome(options=options)
@@ -74,102 +75,57 @@ def run():
         driver.get(f"https://www.pythonanywhere.com/user/{USERNAME}/files/home/{USERNAME}/moon_data.json?edit")
         time.sleep(5)
         
-        # Фокус на странице (редактор уже активен)
-        body = driver.find_element(By.TAG_NAME, 'body')
-        body.click()
+        # Фокус на странице
+        driver.execute_script("document.body.click()")
         time.sleep(1)
         
         # Выделить всё и удалить
         print("📋 Очистка редактора...")
-        actions = ActionChains(driver)
-        actions.key_down(Keys.CONTROL).send_keys('a').key_up(Keys.CONTROL).perform()
-        actions.send_keys(Keys.DELETE).perform()
+        ActionChains(driver).key_down(Keys.CONTROL).send_keys('a').key_up(Keys.CONTROL).perform()
+        ActionChains(driver).send_keys(Keys.DELETE).perform()
         time.sleep(1)
         
         # Вставка новых данных
         print("📋 Вставка данных JSON...")
-        body.send_keys(MOON_JSON)
+        ActionChains(driver).send_keys(MOON_JSON).perform()
         time.sleep(2)
         
         # Сохранение файла
         print("💾 Сохранение файла...")
-        actions.key_down(Keys.CONTROL).send_keys('s').key_up(Keys.CONTROL).perform()
+        ActionChains(driver).key_down(Keys.CONTROL).send_keys('s').key_up(Keys.CONTROL).perform()
         time.sleep(3)
         print("✅ Файл moon_data.json сохранен")
 
-        # 3. Работа с консолью
-        print("🖥️ Подготовка консоли...")
-        driver.get(f"https://www.pythonanywhere.com/user/{USERNAME}/consoles/")
-        time.sleep(3)
-        
-        # Закрытие старых консолей
-        close_buttons = driver.find_elements(By.CSS_SELECTOR, 'span.glyphicon-remove')
-        for btn in close_buttons:
-            try:
-                btn.click()
-                time.sleep(1)
-            except:
-                pass
+        # 3. Работа с консолью (упрощенный вариант)
+        print("🖥️ Открытие консоли напрямую...")
+        driver.get(f"https://www.pythonanywhere.com/user/{USERNAME}/consoles/bash//home/{USERNAME}/new")
+        time.sleep(15)  # Долгая загрузка консоли
 
-        # Открытие новой консоли
-        print("🆕 Создание новой bash консоли...")
-        driver.get(f"https://www.pythonanywhere.com/user/{USERNAME}/files/home/{USERNAME}")
-        time.sleep(2)
-        open_link = driver.find_element(By.CSS_SELECTOR, f'a[href="/user/{USERNAME}/consoles/bash//home/{USERNAME}/new"]')
-        open_link.click()
-        time.sleep(15)
-
-        # Выполнение команды
-        print("⚡ Запуск обработчика данных...")
-        driver.switch_to.frame(driver.find_element(By.ID, "id_console"))
-        time.sleep(5)
-        
-        body = driver.find_element(By.TAG_NAME, "body")
-        body.click()
-        time.sleep(1)
-        
-        # Ввод команды
-        body.send_keys('python3 pythonanywhere_starter.py')
-        time.sleep(1)
-        body.send_keys(Keys.ENTER)
-        time.sleep(1)
-        
-        print("⏳ Ожидание обработки данных (20 секунд)...")
+        # Ввод команды через JavaScript
+        print("⚡ Ввод команды через JavaScript...")
+        driver.execute_script("""
+            term_.io.sendString('python3 pythonanywhere_starter.py\\n');
+        """)
         time.sleep(20)
-        driver.switch_to.default_content()
-        print("✅ Скрипт выполнен")
+        print("✅ Команда выполнена")
 
         # 4. Получение обработанных данных
         print("📖 Открытие обработанного файла...")
         driver.get(f"https://www.pythonanywhere.com/user/{USERNAME}/files/home/{USERNAME}/moon_data_processed.json?edit")
         time.sleep(5)
         
-        # Получение содержимого через Ctrl+A, Ctrl+C
-        print("📋 Получение обработанных данных...")
-        body = driver.find_element(By.TAG_NAME, 'body')
-        body.click()
-        time.sleep(1)
-        
-        actions = ActionChains(driver)
-        actions.key_down(Keys.CONTROL).send_keys('a').key_up(Keys.CONTROL).perform()
-        time.sleep(1)
-        actions.key_down(Keys.CONTROL).send_keys('c').key_up(Keys.CONTROL).perform()
-        time.sleep(1)
-        
-        # Получаем текст из буфера обмена
-        try:
-            from pyperclip import paste
-            processed_content = paste()
-        except:
-            processed_content = ""
-            print("⚠️ Не удалось получить данные из буфера обмена")
-
-        if not processed_content:
-            # Альтернативный способ через JavaScript
-            processed_content = driver.execute_script("return document.querySelector('.ace_content').innerText")
+        # Получение содержимого через JavaScript
+        print("📋 Получение данных через JavaScript...")
+        processed_content = driver.execute_script("""
+            try {
+                return ace.edit(document.querySelector('.ace_editor')).getValue();
+            } catch(e) {
+                return document.querySelector('.ace_content').innerText;
+            }
+        """)
         
         if not processed_content:
-            raise Exception("Не удалось получить содержимое обработанного файла")
+            raise Exception("Не удалось получить содержимое файла")
 
         # 5. Сохранение результата
         print("💾 Сохранение результата...")
