@@ -26,28 +26,56 @@ def moon_today_description(driver):
 
 
 def moon_dream_dictionary(driver):
+    from bs4 import BeautifulSoup
+
     driver.get("https://rivendel.ru/dream_lenta.php")
-    try:
-        all_tds = driver.find_elements(By.TAG_NAME, "td")
+    soup = BeautifulSoup(driver.page_source, "html.parser")
 
-        target_index = None
-        for i, td in enumerate(all_tds):
-            if td.find_elements(By.XPATH, ".//img[@src='greensn.gif']"):
-                target_index = i
-                break
+    # Найдём тег <img src="greensn.gif">
+    green_img = soup.find("img", {"src": "greensn.gif"})
+    if not green_img:
+        print("🌙 Галочка не найдена.")
+        return
 
-        if target_index is not None:
-            following_tds = all_tds[target_index + 1 : target_index + 10]
-            print("🌙 Moon Dream Dictionary:")
-            for td in following_tds:
-                print(td.text.strip())
+    # Переходим к <tr>, в котором находится галочка
+    target_tr = green_img.find_parent("tr")
+    current_tr = target_tr
+
+    result = []
+
+    # Следующий <tr> — день недели
+    current_tr = current_tr.find_next_sibling("tr")
+    tds = current_tr.find_all("td")
+    if len(tds) == 2:
+        date = tds[0].get_text(strip=True).replace("29 июля 2025", "").strip()  # уже будет внутри с img
+        weekday = tds[1].get_text(strip=True)
+        result.append(weekday)
+
+    # Следующий <tr> — лунный день и фаза
+    current_tr = current_tr.find_next_sibling("tr")
+    tds = current_tr.find_all("td")
+    for td in tds:
+        result.append(td.get_text(strip=True))
+
+    # Следующий <tr> — время и знак
+    current_tr = current_tr.find_next_sibling("tr")
+    tds = current_tr.find_all("td")
+    for td in tds:
+        alt = td.find("img")["alt"] if td.find("img") else ""
+        if alt:
+            result.append(alt)
         else:
-            print("🌙 Moon Dream Dictionary: галочка не найдена.")
-    except Exception as e:
-        print("🌙 Moon Dream Dictionary: ошибка.")
-        print(str(e))
-    print()
+            result.append(td.get_text(strip=True))
 
+    # Следующий <tr> — толкование
+    current_tr = current_tr.find_next_sibling("tr")
+    full_text = current_tr.get_text(separator="\n", strip=True)
+    result.append(full_text)
+
+    # Вывод
+    print("🌙 Moon Dream Dictionary:")
+    for item in result:
+        print(item)
 
 
 
