@@ -103,16 +103,14 @@ if __name__ == "__main__":
     driver = uc.Chrome(options=options)
 
     try:
-        data = {}
-        data.update(moon_today_description(driver))
-        data.update(moon_dream_dictionary(driver))
-        data.update(day_inspiration(driver))
-        
-        # Single JSON output with proper formatting
-        json_output = json.dumps(data, ensure_ascii=False, indent=2)
-        print(json_output)
+        data = {
+            "moon_today": moon_today_description(driver),
+            "moon_dream": moon_dream_dictionary(driver),
+            "inspiration": day_inspiration(driver)
+        }
+        print(json.dumps(data, ensure_ascii=False, indent=2))
     except Exception as e:
         print(f"Error: {str(e)}", file=sys.stderr)
-        exit(1)
+        sys.exit(1)
     finally:
         driver.quit()
