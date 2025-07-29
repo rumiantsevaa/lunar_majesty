@@ -156,31 +156,13 @@ def run():
         # Получение содержимого через активный элемент
         print("📋 Получение данных...")
         active_element = driver.switch_to.active_element
-        
-        # Выделяем и копируем содержимое
-        ActionChains(driver)\
-            .key_down(Keys.CONTROL)\
-            .send_keys('a')\
-            .key_up(Keys.CONTROL)\
-            .perform()
-        time.sleep(1)
-        ActionChains(driver)\
-            .key_down(Keys.CONTROL)\
-            .send_keys('c')\
-            .key_up(Keys.CONTROL)\
-            .perform()
         time.sleep(1)
         
-        # Вставляем из буфера в переменную
-        processed_content = driver.execute_script("return navigator.clipboard.readText()")
-        
-        if not processed_content:
-            # Альтернативный способ через активный элемент
-            processed_content = active_element.get_attribute('value')
+        processed_content = active_element.get_attribute('value')
         
         if not processed_content:
             raise Exception("Не удалось получить содержимое файла")
-
+        
         # 5. Сохранение результата
         print("💾 Сохранение результата...")
         with open('moon_data_processed.json', 'w', encoding='utf-8') as f:
