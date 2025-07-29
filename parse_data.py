@@ -1,3 +1,4 @@
+import json
 import undetected_chromedriver as uc
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
@@ -16,74 +17,53 @@ def moon_today_description(driver):
             data[key] = value
         except:
             continue
-
-    print("🌕 Moon Today:")
-    print(f"Current Time: {data.get('Current Time:', '—')}")
-    print(f"Moon Phase Tonight: {data.get('Moon Phase Tonight:', '—')}")
-    print(f"First Quarter: {data.get('First Quarter:', '—')}")
-    print(f"New Moon: {data.get('New Moon:', '—')}")
-    print()
-
+    return {
+        "moon_today": {
+            "current_time": data.get("Current Time:", "—"),
+            "moon_phase": data.get("Moon Phase Tonight:", "—"),
+            "first_quarter": data.get("First Quarter:", "—"),
+            "new_moon": data.get("New Moon:", "—")
+        }
+    }
 
 def moon_dream_dictionary(driver):
-
     driver.get("https://rivendel.ru/dream_lenta.php")
     soup = BeautifulSoup(driver.page_source, "html.parser")
-
-    # Найдём тег <img src="greensn.gif">
     green_img = soup.find("img", {"src": "greensn.gif"})
     if not green_img:
-        print("🌙 Галочка не найдена.")
-        return
+        return {"moon_dream": {"error": "Can't find the checkbox"}}
 
-    # Переходим к <tr>, в котором находится галочка
     target_tr = green_img.find_parent("tr")
-    current_tr = target_tr
+    result = {
+        "weekday": "",
+        "moon_day": "",
+        "zodiac_sign": "",
+        "interpretation": ""
+    }
 
-    result = []
-
-    # Следующий <tr> — день недели
-    current_tr = current_tr.find_next_sibling("tr")
+    current_tr = target_tr.find_next_sibling("tr")
     tds = current_tr.find_all("td")
     if len(tds) == 2:
-        date = tds[0].get_text(strip=True).replace("29 июля 2025", "").strip()  # уже будет внутри с img
-        weekday = tds[1].get_text(strip=True)
-        result.append(weekday)
+        result["weekday"] = tds[1].get_text(strip=True)
 
-    # Следующий <tr> — лунный день и фаза
     current_tr = current_tr.find_next_sibling("tr")
     tds = current_tr.find_all("td")
-    for td in tds:
-        result.append(td.get_text(strip=True))
+    result["moon_day"] = tds[0].get_text(strip=True)
 
-    # Следующий <tr> — время и знак
     current_tr = current_tr.find_next_sibling("tr")
     tds = current_tr.find_all("td")
-    for td in tds:
-        alt = td.find("img")["alt"] if td.find("img") else ""
-        if alt:
-            result.append(alt)
-        else:
-            result.append(td.get_text(strip=True))
+    if tds and tds[0].find("img"):
+        result["zodiac_sign"] = tds[0].find("img")["alt"]
 
-    # Следующий <tr> — толкование
     current_tr = current_tr.find_next_sibling("tr")
-    full_text = current_tr.get_text(separator="\n", strip=True)
-    result.append(full_text)
+    result["interpretation"] = current_tr.get_text(separator="\n", strip=True)
 
-    # Вывод
-    print("🌙 Moon Dream Dictionary:")
-    for item in result:
-        print(item, "\n")
-
-
+    return {"moon_dream": result}
 
 def day_inspiration(driver):
     driver.get("https://www.greatday.com/")
     try:
-        WebDriverWait(driver, 10).until(
-            EC.presence_of_element_located((By.ID, "messageBox"))
-        )
+        WebDriverWait(driver, 10).until(EC.presence_of_element_located((By.ID, "messageBox")))
         box = driver.find_element(By.ID, "messageBox")
         date = box.find_element(By.TAG_NAME, "h3").text.strip()
         title = box.find_element(By.TAG_NAME, "h1").text.strip()
@@ -91,14 +71,16 @@ def day_inspiration(driver):
         content = "\n\n".join(p.text.strip() for p in paragraphs[:-1])
         author = paragraphs[-1].text.strip()
 
-        print("☀️ Daily Inspiration:")
-        print(f"{date} — {title}")
-        print(content)
-        print(author)
+        return {
+            "inspiration": {
+                "date": date,
+                "title": title,
+                "content": content,
+                "author": author
+            }
+        }
     except:
-        print("☀️ Daily Inspiration: не удалось получить данные.")
-    print()
-
+        return {"inspiration": {"error": "Can't get the requested data"}}
 
 if __name__ == "__main__":
     options = uc.ChromeOptions()
@@ -106,8 +88,11 @@ if __name__ == "__main__":
     driver = uc.Chrome(options=options)
 
     try:
-        moon_today_description(driver)
-        moon_dream_dictionary(driver)
-        day_inspiration(driver)
+        data = {}
+        data.update(moon_today_description(driver))
+        data.update(moon_dream_dictionary(driver))
+        data.update(day_inspiration(driver))
+        
+        print(json.dumps(data))
     finally:
         driver.quit()
