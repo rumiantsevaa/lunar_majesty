@@ -1,4 +1,4 @@
-name: Parse required data and transfer >> process it
+name: Parse moon data
 
 on:
   workflow_dispatch:
@@ -24,18 +24,32 @@ jobs:
       - name: Run parser script
         id: parse
         run: |
-          python parse_data.py > output.json
-          echo "JSON_DATA=$(cat output.json)" >> $GITHUB_OUTPUT
-          cat output.json  # Для проверки в логах
+          # Run script and capture output
+          JSON_OUTPUT=$(python parse_data.py)
+          
+          # Validate JSON
+          if ! jq -e . >/dev/null 2>&1 <<<"$JSON_OUTPUT"; then
+            echo "::error::Invalid JSON output"
+            exit 1
+          fi
+          
+          # Save to file and set output
+          echo "$JSON_OUTPUT" > moon_data.json
+          echo "json_data<<EOF" >> $GITHUB_OUTPUT
+          echo "$JSON_OUTPUT" >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
+          
+          # For debugging
+          echo "First 100 chars of JSON:"
+          echo "$JSON_OUTPUT" | head -c 100
 
-      - name: Save JSON to file
-        run: |
-          echo '${{ steps.parse.outputs.JSON_DATA }}' > moon_data.json
-          echo "Содержимое moon_data.json:"
-          cat moon_data.json
-
-      - name: Upload moon data as artifact
+      - name: Upload moon data
         uses: actions/upload-artifact@v4
         with:
           name: moon-data
           path: moon_data.json
+
+      - name: Show result
+        run: |
+          echo "Data saved to moon_data.json"
+          echo "JSON length: ${#{{ steps.parse.outputs.json_data }}} characters"
