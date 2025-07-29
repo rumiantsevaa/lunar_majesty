@@ -1,4 +1,4 @@
-name: Parse Moon + Inspiration
+name: Parse required data and transfer >> process it
 
 on:
   workflow_dispatch:
@@ -19,14 +19,17 @@ jobs:
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install -r requirements.txt
+          pip install selenium undetected-chromedriver beautifulsoup4
 
-      - name: Run parser script and capture output
+      - name: Run parser script
         id: parse
         run: |
-          JSON_DATA=$(python parse_data.py)
-          echo "data=${JSON_DATA}" >> $GITHUB_OUTPUT
+          python parse_data.py > output.json
+          echo "JSON_DATA=$(cat output.json)" >> $GITHUB_OUTPUT
+          cat output.json  # Для проверки в логах
 
-      - name: Display parsed data (debug)
+      - name: Save JSON to file
         run: |
-          echo "${{ steps.parse.outputs.data }}"
+          echo '${{ steps.parse.outputs.JSON_DATA }}' > moon_data.json
+          echo "Содержимое moon_data.json:"
+          cat moon_data.json
