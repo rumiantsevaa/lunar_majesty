@@ -1,3 +1,4 @@
 selenium
 undetected_chromedriver
 beautifulsoup4
+pyperclip
