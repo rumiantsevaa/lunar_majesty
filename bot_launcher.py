@@ -85,25 +85,102 @@ def run():
         print("📝 Открытие файла moon_data.json для редактирования...")
         driver.get(f"https://www.pythonanywhere.com/user/{USERNAME}/files/home/{USERNAME}/moon_data.json?edit")
         time.sleep(5)
+        
+        # Отладочная информация о странице
+        print(f"🔍 Текущий URL: {driver.current_url}")
+        print(f"📄 Заголовок страницы: {driver.title}")
+        
+        # Проверим, есть ли сообщения об ошибках
+        try:
+            error_messages = driver.find_elements(By.CSS_SELECTOR, ".alert, .error, .message")
+            for msg in error_messages:
+                if msg.text.strip():
+                    print(f"⚠️ Сообщение на странице: {msg.text.strip()}")
+        except:
+            pass
 
-        # Переключение на iframe редактора
-        print("🔄 Переключение на редактор файлов...")
-        editor_frame = wait_for_element(driver, By.ID, "id_file_editor_iframe")
+        # Поиск и переключение на iframe редактора
+        print("🔄 Поиск iframe редактора...")
+        time.sleep(5)
+        
+        # Проверим все доступные iframe
+        iframes = driver.find_elements(By.TAG_NAME, "iframe")
+        print(f"📝 Найдено {len(iframes)} iframe на странице")
+        
+        editor_frame = None
+        # Попробуем разные возможные ID/селекторы для iframe
+        possible_selectors = [
+            (By.ID, "id_file_editor_iframe"),
+            (By.ID, "file_editor_iframe"),
+            (By.ID, "editor_iframe"),
+            (By.CSS_SELECTOR, "iframe[src*='editor']"),
+            (By.CSS_SELECTOR, "iframe")
+        ]
+        
+        for by, selector in possible_selectors:
+            try:
+                editor_frame = driver.find_element(by, selector)
+                print(f"✅ Найден iframe с селектором: {selector}")
+                break
+            except:
+                continue
+        
+        if not editor_frame and iframes:
+            # Если не нашли по селекторам, возьмем первый iframe
+            editor_frame = iframes[0]
+            print("📝 Используем первый доступный iframe")
+        
+        if not editor_frame:
+            raise Exception("Не найден iframe редактора")
+            
         driver.switch_to.frame(editor_frame)
-        time.sleep(3)
+        time.sleep(5)
+
+        # Поиск текстового редактора
+        print("📋 Поиск текстового редактора...")
+        
+        # Попробуем разные селекторы для редактора
+        editor_selectors = [
+            ".ace_text-input",
+            ".ace_editor textarea",
+            "textarea",
+            ".CodeMirror textarea",
+            "#id_content"
+        ]
+        
+        editor = None
+        for selector in editor_selectors:
+            try:
+                editor = driver.find_element(By.CSS_SELECTOR, selector)
+                print(f"✅ Найден редактор: {selector}")
+                break
+            except:
+                continue
+        
+        if not editor:
+            # Попробуем найти любой input или textarea
+            try:
+                editor = driver.find_element(By.TAG_NAME, "textarea")
+                print("✅ Найден textarea редактор")
+            except:
+                raise Exception("Не найден текстовый редактор")
 
         # Очистка содержимого и вставка новых данных
         print("📋 Очистка и вставка данных JSON...")
-        editor = wait_for_element(driver, By.CSS_SELECTOR, ".ace_text-input")
+        
+        # Кликаем на редактор и фокусируемся
+        actions = ActionChains(driver)
+        actions.move_to_element(editor).click()
+        actions.perform()
+        time.sleep(1)
         
         # Выделяем все содержимое и заменяем
         actions = ActionChains(driver)
-        actions.move_to_element(editor).click()
         actions.key_down(Keys.CONTROL).send_keys('a').key_up(Keys.CONTROL)  # Ctrl+A
         actions.send_keys(Keys.DELETE)  # Удаляем выделенное
         actions.send_keys(MOON_JSON)  # Вставляем новые данные
         actions.perform()
-        time.sleep(2)
+        time.sleep(3)
 
         # Сохранение файла
         print("💾 Сохранение файла (Ctrl+S)...")
@@ -163,25 +240,83 @@ def run():
         driver.get(f"https://www.pythonanywhere.com/user/{USERNAME}/files/home/{USERNAME}/moon_data_processed.json?edit")
         time.sleep(5)
 
-        # Переключение на iframe редактора
-        editor_frame = wait_for_element(driver, By.ID, "id_file_editor_iframe")
+        # Поиск и переключение на iframe редактора
+        print("🔄 Поиск iframe редактора для чтения результата...")
+        
+        iframes = driver.find_elements(By.TAG_NAME, "iframe")
+        editor_frame = None
+        
+        for by, selector in possible_selectors:
+            try:
+                editor_frame = driver.find_element(by, selector)
+                break
+            except:
+                continue
+        
+        if not editor_frame and iframes:
+            editor_frame = iframes[0]
+        
+        if not editor_frame:
+            raise Exception("Не найден iframe редактора для чтения результата")
+            
         driver.switch_to.frame(editor_frame)
-        time.sleep(3)
+        time.sleep(5)
 
-        # Выделение всего содержимого
-        print("📋 Копирование обработанных данных...")
-        editor = wait_for_element(driver, By.CSS_SELECTOR, ".ace_text-input")
-        actions = ActionChains(driver)
-        actions.move_to_element(editor).click()
-        actions.key_down(Keys.CONTROL).send_keys('a').key_up(Keys.CONTROL)  # Ctrl+A
-        actions.perform()
-        time.sleep(2)
+        # Поиск редактора и получение содержимого
+        print("📋 Получение обработанных данных...")
+        
+        # Попробуем получить содержимое разными способами
+        processed_content = ""
+        
+        # Способ 1: Через JavaScript API Ace редактора
+        try:
+            processed_content = driver.execute_script("""
+                try {
+                    var editor = ace.edit(document.querySelector('.ace_editor'));
+                    return editor.getValue();
+                } catch(e) {
+                    return '';
+                }
+            """)
+            if processed_content:
+                print("✅ Содержимое получено через Ace Editor API")
+        except:
+            pass
+        
+        # Способ 2: Через textarea
+        if not processed_content:
+            try:
+                for selector in editor_selectors:
+                    try:
+                        editor_elem = driver.find_element(By.CSS_SELECTOR, selector)
+                        processed_content = editor_elem.get_attribute('value') or editor_elem.text
+                        if processed_content:
+                            print(f"✅ Содержимое получено через {selector}")
+                            break
+                    except:
+                        continue
+            except:
+                pass
+        
+        # Способ 3: Выделение и копирование
+        if not processed_content:
+            try:
+                editor_elem = driver.find_element(By.CSS_SELECTOR, editor_selectors[0])
+                actions = ActionChains(driver)
+                actions.move_to_element(editor_elem).click()
+                actions.key_down(Keys.CONTROL).send_keys('a').key_up(Keys.CONTROL)
+                actions.perform()
+                time.sleep(1)
+                
+                # Попробуем получить выделенный текст
+                processed_content = driver.execute_script("return window.getSelection().toString();")
+                if processed_content:
+                    print("✅ Содержимое получено через выделение")
+            except:
+                pass
 
-        # Получение содержимого через JavaScript
-        processed_content = driver.execute_script("""
-            var editor = ace.edit(document.querySelector('.ace_editor'));
-            return editor.getValue();
-        """)
+        if not processed_content:
+            raise Exception("Не удалось получить содержимое обработанного файла")
 
         driver.switch_to.default_content()
         print(f"✅ Получено {len(processed_content)} символов обработанных данных")
