@@ -20,7 +20,7 @@ def moon_today_description(driver):
     return {
         "moon_today": {
             "current_time": data.get("Current Time:", "—"),
-            "moon_phase": data.get("Moon Phase Tonight:", "—"),
+            "moon_phase_tonight": data.get("Moon Phase Tonight:", "—"),
             "first_quarter": data.get("First Quarter:", "—"),
             "new_moon": data.get("New Moon:", "—")
         }
@@ -29,36 +29,50 @@ def moon_today_description(driver):
 def moon_dream_dictionary(driver):
     driver.get("https://rivendel.ru/dream_lenta.php")
     soup = BeautifulSoup(driver.page_source, "html.parser")
+    
     green_img = soup.find("img", {"src": "greensn.gif"})
     if not green_img:
         return {"moon_dream": {"error": "Can't find the checkbox"}}
 
     target_tr = green_img.find_parent("tr")
-    result = {
-        "weekday": "",
-        "moon_day": "",
-        "zodiac_sign": "",
-        "interpretation": ""
-    }
+    current_tr = target_tr
+    result = []
 
-    current_tr = target_tr.find_next_sibling("tr")
+    # День недели
+    current_tr = current_tr.find_next_sibling("tr")
     tds = current_tr.find_all("td")
+    weekday = ""
     if len(tds) == 2:
-        result["weekday"] = tds[1].get_text(strip=True)
+        weekday = tds[1].get_text(strip=True)
 
+    # Лунный день и фаза
     current_tr = current_tr.find_next_sibling("tr")
-    tds = current_tr.find_all("td")
-    result["moon_day"] = tds[0].get_text(strip=True)
+    moon_day_phase = [td.get_text(strip=True) for td in current_tr.find_all("td")]
 
+    # Время и знак зодиака
     current_tr = current_tr.find_next_sibling("tr")
-    tds = current_tr.find_all("td")
-    if tds and tds[0].find("img"):
-        result["zodiac_sign"] = tds[0].find("img")["alt"]
+    time_zodiac = []
+    for td in current_tr.find_all("td"):
+        alt = td.find("img")["alt"] if td.find("img") else ""
+        if alt:
+            time_zodiac.append(alt)
+        else:
+            time_zodiac.append(td.get_text(strip=True))
 
+    # Толкование
     current_tr = current_tr.find_next_sibling("tr")
-    result["interpretation"] = current_tr.get_text(separator="\n", strip=True)
+    interpretation = current_tr.get_text(separator="\n", strip=True)
 
-    return {"moon_dream": result}
+    return {
+        "moon_dream": {
+            "weekday": weekday,
+            "moon_day": moon_day_phase[0] if len(moon_day_phase) > 0 else "",
+            "moon_phase": moon_day_phase[1] if len(moon_day_phase) > 1 else "",
+            "time": time_zodiac[0] if len(time_zodiac) > 0 else "",
+            "zodiac_sign": time_zodiac[1] if len(time_zodiac) > 1 else "",
+            "interpretation": interpretation
+        }
+    }
 
 def day_inspiration(driver):
     driver.get("https://www.greatday.com/")
@@ -93,6 +107,6 @@ if __name__ == "__main__":
         data.update(moon_dream_dictionary(driver))
         data.update(day_inspiration(driver))
         
-        print(json.dumps(data))
+        print(json.dumps(data, ensure_ascii=False, indent=2))
     finally:
         driver.quit()
