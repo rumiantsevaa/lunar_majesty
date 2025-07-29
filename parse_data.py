@@ -107,6 +107,13 @@ if __name__ == "__main__":
         data.update(moon_dream_dictionary(driver))
         data.update(day_inspiration(driver))
         
+        # Убираем pretty print для GitHub Actions
+        print(json.dumps(data, ensure_ascii=False))
+    except Exception as e:
+        print(f"Error: {str(e)}", file=sys.stderr)
+        exit(1)
+    finally:
+        driver.quit()
         print(json.dumps(data, ensure_ascii=False, indent=2))
     finally:
         driver.quit()
