@@ -1,4 +1,2 @@
 selenium
-webdriver-manager
-BeautifulSoup
-requests
+undetected_chromedriver
