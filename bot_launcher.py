@@ -10,6 +10,9 @@ USERNAME = os.getenv("PA_USERNAME")
 PASSWORD = os.getenv("PA_PASSWORD")
 MOON_JSON = os.getenv("MOON_JSON")
 
+DOWNLOAD_DIR = os.path.abspath("downloads")
+os.makedirs(DOWNLOAD_DIR, exist_ok=True)
+
 def wait_and_click(driver, by, value, timeout=10):
     for _ in range(timeout * 2):
         try:
@@ -30,6 +33,17 @@ def wait_and_type(driver, by, value, text, timeout=10):
         except:
             time.sleep(0.5)
     return False
+
+def wait_for_file(filename, timeout=15):
+    """Ждём появления файла и завершения скачивания (.crdownload)"""
+    for _ in range(timeout * 2):
+        if os.path.exists(filename) and not filename.endswith(".crdownload"):
+            # Проверяем, что файл не временный (не загружается)
+            if not any(fname.startswith(filename) and fname.endswith(".crdownload") for fname in os.listdir(DOWNLOAD_DIR)):
+                return True
+        time.sleep(0.5)
+    return False
+    
 
 def run():
     print("🚀 Запуск бота...")
@@ -52,11 +66,19 @@ def run():
         return
 
     options = uc.ChromeOptions()
+    # Настройки скачивания, чтобы не появлялся диалог
+    prefs = {
+        "download.default_directory": DOWNLOAD_DIR,
+        "download.prompt_for_download": False,
+        "download.directory_upgrade": True,
+        "safebrowsing.enabled": True,
+    }
+    options.add_experimental_option("prefs", prefs)
+
     options.headless = True
     options.add_argument("--no-sandbox")
     options.add_argument("--disable-dev-shm-usage")
     options.add_argument("--window-size=1920,1080")
-
     print("🌐 Запуск Chrome...")
     driver = uc.Chrome(options=options)
     
@@ -148,27 +170,27 @@ def run():
         # Возврат в основной контекст
         driver.switch_to.default_content()
 
-        # 4. Получение обработанных данных
-        print("📖 Открытие обработанного файла...")
-        driver.get(f"https://www.pythonanywhere.com/user/{USERNAME}/files/home/{USERNAME}/moon_data_processed.json?edit")
+        # 4. Получение обработанных данных через скачивание
+        print("📖 Открытие страницы файлов для скачивания обработанного файла...")
+        driver.get(f"https://www.pythonanywhere.com/user/{USERNAME}/files/home/{USERNAME}")
         time.sleep(5)
-        
-        # Получение содержимого через активный элемент
-        print("📋 Получение данных...")
-        active_element = driver.switch_to.active_element
-        time.sleep(1)
-        
-        processed_content = active_element.get_attribute('value')
-        
-        if not processed_content:
-            raise Exception("Не удалось получить содержимое файла")
-        
-        # 5. Сохранение результата
-        print("💾 Сохранение результата...")
-        with open('moon_data_processed.json', 'w', encoding='utf-8') as f:
-            f.write(processed_content)
-        
-        print(f"✅ Файл moon_data_processed.json создан ({len(processed_content)} символов)")
+
+        print("⬇️ Кликаем по ссылке скачивания moon_data_processed.json")
+        download_link = driver.find_element(By.CSS_SELECTOR, 'a.download_link[href$="moon_data_processed.json"]')
+        download_link.click()
+
+        # Ждём появления файла в папке загрузок
+        local_filename = os.path.join(DOWNLOAD_DIR, "moon_data_processed.json")
+        print(f"⏳ Ждём скачивания файла: {local_filename} ...")
+        if not wait_for_file(local_filename):
+            raise Exception("Файл moon_data_processed.json не скачался за отведённое время")
+
+        # Читаем скачанный файл
+        print("📋 Читаем скачанный файл...")
+        with open(local_filename, "r", encoding="utf-8") as f:
+            processed_content = f.read()
+
+        print(f"✅ Файл moon_data_processed.json прочитан ({len(processed_content)} символов)")
         print(f"📝 Предварительный просмотр: {processed_content[:200]}...")
         
     except Exception as e:
