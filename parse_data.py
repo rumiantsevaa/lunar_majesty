@@ -1,112 +1,74 @@
-from selenium import webdriver
-from selenium.webdriver.chrome.service import Service
-from selenium.webdriver.chrome.options import Options
-from selenium.webdriver.common.by import By
-from selenium.webdriver.support.ui import WebDriverWait
-from selenium.webdriver.support import expected_conditions as EC
-from webdriver_manager.chrome import ChromeDriverManager
+from bs4 import BeautifulSoup
+import requests
 
 
-def setup_driver():
-    chrome_options = Options()
-    chrome_options.add_argument("--headless")
-    chrome_options.add_argument("--no-sandbox")
-    chrome_options.add_argument("--disable-dev-shm-usage")
-    chrome_options.add_argument("--disable-gpu")
-    chrome_options.add_argument("--window-size=1920,1080")
-    chrome_options.add_argument(
-        "user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36"
-    )
-    
-    service = Service(ChromeDriverManager().install())
-    driver = webdriver.Chrome(service=service, options=chrome_options)
-    return driver
-
-
-def moon_today_description(driver):
+def moon_today_description():
     url = "https://www.timeanddate.com/moon/phases/ukraine/kyiv"
-    driver.get(url)
-    WebDriverWait(driver, 15).until(
-        EC.presence_of_element_located((By.CSS_SELECTOR, "table.table--inner-borders-rows"))
-    )
+    response = requests.get(url)
+    soup = BeautifulSoup(response.content, "html.parser")
 
-    current_time = driver.find_element(By.ID, "smct").text
-    moon_phase = driver.find_element(By.XPATH, "//th[contains(text(), 'Moon Phase Tonight:')]/following-sibling::td").text
-    next_phase = driver.find_element(By.XPATH, "//th[contains(text(), 'First Quarter:')]/following-sibling::td").text
-    prev_phase = driver.find_element(By.XPATH, "//th[contains(text(), 'New Moon:')]/following-sibling::td").text
+    data = {}
 
-    return {
-        "current_time": current_time,
-        "moon_phase_tonight": moon_phase,
-        "next_phase": next_phase,
-        "previous_phase": prev_phase,
-    }
+    rows = soup.select("table.table--left tr")
+    for row in rows:
+        header = row.select_one("th")
+        value = row.select_one("td")
+        if header and value:
+            key = header.get_text(strip=True)
+            val = value.get_text(strip=True)
+            data[key] = val
+
+    print("🌕 Moon Today:")
+    print(f"Current Time: {data.get('Current Time:')}")
+    print(f"Moon Phase Tonight: {data.get('Moon Phase Tonight:')}")
+    print(f"First Quarter: {data.get('First Quarter:')}")
+    print(f"New Moon: {data.get('New Moon:')}")
+    print()
 
 
-def moon_dream_dictionary(driver):
+def moon_dream_dictionary():
     url = "https://rivendel.ru/dream_lenta.php"
-    driver.get(url)
-    WebDriverWait(driver, 15).until(
-        EC.presence_of_element_located((By.CSS_SELECTOR, "img[src='greensn.gif']"))
-    )
+    response = requests.get(url)
+    soup = BeautifulSoup(response.content, "html.parser")
 
-    img = driver.find_element(By.CSS_SELECTOR, "img[src='greensn.gif']")
-    dream_meaning = img.find_element(By.XPATH, "./following::td[1]").text
-    return dream_meaning
+    green_img = soup.find("img", {"src": "greensn.gif"})
+    if not green_img:
+        print("🌙 Moon Dream Dictionary: элемент с иконкой greensn.gif не найден.")
+        return
+
+    dream_td = green_img.find_next("td", {"width": "100%"})
+    if dream_td:
+        print("🌙 Moon Dream Dictionary:")
+        print(dream_td.get_text(strip=True, separator="\n"))
+    else:
+        print("🌙 Moon Dream Dictionary: текст после иконки не найден.")
+    print()
 
 
-def day_inspiration(driver):
+def day_inspiration():
     url = "https://www.greatday.com/"
-    driver.get(url)
-    WebDriverWait(driver, 15).until(EC.presence_of_element_located((By.ID, "messageBox")))
+    response = requests.get(url)
+    soup = BeautifulSoup(response.content, "html.parser")
 
-    date = driver.find_element(By.CSS_SELECTOR, "#messageBox h3").text
-    title = driver.find_element(By.CSS_SELECTOR, "#messageBox h1").text
-    paragraphs = driver.find_elements(By.CSS_SELECTOR, "#messageBox p.maintext")
+    box = soup.select_one("div#messageBox")
+    if not box:
+        print("☀️ Daily Inspiration: блок messageBox не найден.")
+        return
 
-    main_texts = [p.text for p in paragraphs[:-1]]
-    author = paragraphs[-1].text if paragraphs else ""
+    date = box.find("h3").text.strip()
+    title = box.find("h1").text.strip()
+    paragraphs = box.select("p.maintext")
+    content = "\n\n".join(p.text.strip() for p in paragraphs[:-1])
+    author = paragraphs[-1].text.strip()
 
-    return {
-        "date": date,
-        "title": title,
-        "text": "\n".join(main_texts),
-        "author": author,
-    }
-
-
-def main():
-    driver = None
-    try:
-        driver = setup_driver()
-        moon = moon_today_description(driver)
-        dream = moon_dream_dictionary(driver)
-        inspiration = day_inspiration(driver)
-
-        print("=== Moon Today ===")
-        print(f"Current Time: {moon['current_time']}")
-        print(f"Moon Phase Tonight: {moon['moon_phase_tonight']}")
-        print(f"Next Phase: {moon['next_phase']}")
-        print(f"Previous Phase: {moon['previous_phase']}")
-        print()
-
-        print("=== Moon Phase Dream Dictionary ===")
-        print(dream)
-        print()
-
-        print("=== Daily Inspiration ===")
-        print(inspiration["date"])
-        print(inspiration["title"])
-        print(inspiration["text"])
-        print(inspiration["author"])
-
-    except Exception as e:
-        print(f"Fatal error: {str(e)}")
-    finally:
-        if driver:
-            driver.quit()
+    print("☀️ Daily Inspiration:")
+    print(f"{date} — {title}")
+    print(content)
+    print(author)
+    print()
 
 
 if __name__ == "__main__":
-    main()
-
+    moon_today_description()
+    moon_dream_dictionary()
+    day_inspiration()
