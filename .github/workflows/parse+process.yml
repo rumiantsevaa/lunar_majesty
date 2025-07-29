@@ -6,6 +6,7 @@ on:
 jobs:
   parse-and-process:
     runs-on: ubuntu-latest
+    timeout-minutes: 15
 
     steps:
       - name: Checkout repository
@@ -23,12 +24,15 @@ jobs:
       - name: Run and save parser output
         run: |
           python parse_data.py > moon_data.json
+          echo "✅ Данные луны сохранены в moon_data.json"
+          ls -la moon_data.json
 
       - name: Read JSON to env var
         id: json
         run: |
           CONTENT=$(cat moon_data.json | python3 -c 'import json,sys; print(json.dumps(json.load(sys.stdin)))')
           echo "MOON_JSON=$CONTENT" >> $GITHUB_ENV
+          echo "✅ JSON данные загружены в переменную окружения"
 
       - name: Launch bot with Selenium
         env:
@@ -36,11 +40,34 @@ jobs:
           PA_PASSWORD: ${{ secrets.PA_PASSWORD }}
           MOON_JSON: ${{ env.MOON_JSON }}
         run: |
+          echo "🚀 Запуск бота..."
           python bot_launcher.py
+          echo "✅ Бот завершил работу"
+
+      - name: Wait for result file (optional)
+        run: |
+          echo "⏳ Ожидание создания файла результата..."
+          for i in {1..30}; do
+            if [ -f "moon_data_processed.json" ]; then
+              echo "✅ Файл результата найден!"
+              break
+            fi
+            echo "⏳ Попытка $i/30 - файл не найден, ожидание..."
+            sleep 2
+          done
+        continue-on-error: true
 
       - name: Upload processed result
-        if: success()
         uses: actions/upload-artifact@v4
         with:
           name: moon-data-processed
-          path: moon_data_processed.json
+          path: |
+            moon_data.json
+            moon_data_processed.json
+        continue-on-error: true
+
+      - name: Show final status
+        run: |
+          echo "📋 Итоговый статус:"
+          ls -la *.json || echo "Нет JSON файлов"
+          echo "✅ Workflow завершен"
