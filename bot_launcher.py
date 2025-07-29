@@ -106,30 +106,46 @@ def run():
         time.sleep(3)
         print("✅ Файл moon_data.json сохранен")
 
-        # 3. Работа с консолью
+        # 3. Работа с консолью (устойчивый метод)
         print("🖥️ Открытие консоли...")
-        driver.get(f"https://www.pythonanywhere.com/user/{USERNAME}/consoles/bash//home/{USERNAME}/new")
-        time.sleep(15)
-        
-        # Переключение на iframe консоли
-        console_frame = driver.find_element(By.ID, "id_console")
-        driver.switch_to.frame(console_frame)
+        driver.get(f"https://www.pythonanywhere.com/user/{USERNAME}/consoles/")
         time.sleep(3)
-        
-        # Находим тело консоли
+
+        # Закрыть старые консоли
+        close_buttons = driver.find_elements(By.CSS_SELECTOR, 'span.glyphicon-remove')
+        for btn in close_buttons:
+            try:
+                btn.click()
+                time.sleep(1)
+            except:
+                pass
+
+        # Вернуться в файловый менеджер
+        driver.get(f"https://www.pythonanywhere.com/user/{USERNAME}/files/home/{USERNAME}")
+        time.sleep(2)
+
+        # Клик по ссылке на запуск консоли
+        print("🚪 Запуск новой bash-консоли...")
+        open_link = driver.find_element(By.CSS_SELECTOR, f'a[href="/user/{USERNAME}/consoles/bash//home/{USERNAME}/new"]')
+        open_link.click()
+        time.sleep(10)
+
+        # Переключение на iframe консоли
+        print("📺 Переключение на iframe консоли...")
+        driver.switch_to.frame(driver.find_element(By.ID, "id_console"))
+        time.sleep(5)
+
+        # Ввод команды
         console_body = driver.find_element(By.TAG_NAME, "body")
-        
-        # Ввод команды с паузами
-        print("⚡ Ввод команды в консоль...")
-        for char in 'python3 pythonanywhere_starter.py':
-            console_body.send_keys(char)
-            time.sleep(0.05)
-        time.sleep(1)
-        console_body.send_keys(Keys.ENTER)
+        actions = ActionChains(driver)
+        actions.move_to_element(console_body).click()
+        actions.send_keys('python3 pythonanywhere_starter.py')
+        actions.send_keys(Keys.ENTER)
+        actions.perform()
+        print("✅ Команда отправлена")
         time.sleep(20)
-        print("✅ Команда выполнена")
-        
-        # Возврат к основному контексту
+
+        # Возврат в основной контекст
         driver.switch_to.default_content()
 
         # 4. Получение обработанных данных
