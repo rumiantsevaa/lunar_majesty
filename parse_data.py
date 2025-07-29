@@ -28,28 +28,26 @@ def moon_today_description(driver):
 def moon_dream_dictionary(driver):
     driver.get("https://rivendel.ru/dream_lenta.php")
     try:
-        green_icon = driver.find_element(By.XPATH, "//img[@src='greensn.gif']")
-        row = green_icon.find_element(By.XPATH, "./ancestor::tr")
-        tds = row.find_elements(By.TAG_NAME, "td")
-        checkbox_index = None
-        for i, td in enumerate(tds):
-            if green_icon in td.find_elements(By.TAG_NAME, "img"):
-                checkbox_index = i
+        all_tds = driver.find_elements(By.TAG_NAME, "td")
+
+        target_index = None
+        for i, td in enumerate(all_tds):
+            if td.find_elements(By.XPATH, ".//img[@src='greensn.gif']"):
+                target_index = i
                 break
 
-        if checkbox_index is not None:
-            following_texts = [
-                td.text.strip() for td in tds[checkbox_index + 1 : checkbox_index + 5]
-            ]
+        if target_index is not None:
+            following_tds = all_tds[target_index + 1 : target_index + 5]
             print("🌙 Moon Dream Dictionary:")
-            for line in following_texts:
-                print(line)
+            for td in following_tds:
+                print(td.text.strip())
         else:
-            print("🌙 Moon Dream Dictionary: галочка не найдена в ячейках.")
+            print("🌙 Moon Dream Dictionary: галочка не найдена.")
     except Exception as e:
-        print("🌙 Moon Dream Dictionary: элемент не найден.")
+        print("🌙 Moon Dream Dictionary: ошибка.")
         print(str(e))
     print()
+
 
 
 def day_inspiration(driver):
