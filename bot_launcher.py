@@ -55,7 +55,7 @@ def run():
     options.headless = True
     options.add_argument("--no-sandbox")
     options.add_argument("--disable-dev-shm-usage")
-    options.add_argument("--window-size=1920,1080")  # Добавляем фиксированный размер окна
+    options.add_argument("--window-size=1920,1080")
 
     print("🌐 Запуск Chrome...")
     driver = uc.Chrome(options=options)
@@ -75,54 +75,92 @@ def run():
         driver.get(f"https://www.pythonanywhere.com/user/{USERNAME}/files/home/{USERNAME}/moon_data.json?edit")
         time.sleep(5)
         
-        # Фокус на странице
-        driver.execute_script("document.body.click()")
-        time.sleep(1)
+        # Находим активный элемент (редактор уже в фокусе)
+        active_element = driver.switch_to.active_element
         
         # Выделить всё и удалить
         print("📋 Очистка редактора...")
-        ActionChains(driver).key_down(Keys.CONTROL).send_keys('a').key_up(Keys.CONTROL).perform()
-        ActionChains(driver).send_keys(Keys.DELETE).perform()
+        ActionChains(driver)\
+            .key_down(Keys.CONTROL)\
+            .send_keys('a')\
+            .key_up(Keys.CONTROL)\
+            .perform()
+        time.sleep(1)
+        active_element.send_keys(Keys.DELETE)
         time.sleep(1)
         
         # Вставка новых данных
         print("📋 Вставка данных JSON...")
-        ActionChains(driver).send_keys(MOON_JSON).perform()
+        for chunk in [MOON_JSON[i:i+100] for i in range(0, len(MOON_JSON), 100)]:
+            active_element.send_keys(chunk)
+            time.sleep(0.1)
         time.sleep(2)
         
         # Сохранение файла
         print("💾 Сохранение файла...")
-        ActionChains(driver).key_down(Keys.CONTROL).send_keys('s').key_up(Keys.CONTROL).perform()
+        ActionChains(driver)\
+            .key_down(Keys.CONTROL)\
+            .send_keys('s')\
+            .key_up(Keys.CONTROL)\
+            .perform()
         time.sleep(3)
         print("✅ Файл moon_data.json сохранен")
 
-        # 3. Работа с консолью (упрощенный вариант)
-        print("🖥️ Открытие консоли напрямую...")
+        # 3. Работа с консолью
+        print("🖥️ Открытие консоли...")
         driver.get(f"https://www.pythonanywhere.com/user/{USERNAME}/consoles/bash//home/{USERNAME}/new")
-        time.sleep(15)  # Долгая загрузка консоли
-
-        # Ввод команды через JavaScript
-        print("⚡ Ввод команды через JavaScript...")
-        driver.execute_script("""
-            term_.io.sendString('python3 pythonanywhere_starter.py\\n');
-        """)
+        time.sleep(15)
+        
+        # Переключение на iframe консоли
+        console_frame = driver.find_element(By.ID, "id_console")
+        driver.switch_to.frame(console_frame)
+        time.sleep(3)
+        
+        # Находим тело консоли
+        console_body = driver.find_element(By.TAG_NAME, "body")
+        
+        # Ввод команды с паузами
+        print("⚡ Ввод команды в консоль...")
+        for char in 'python3 pythonanywhere_starter.py':
+            console_body.send_keys(char)
+            time.sleep(0.05)
+        time.sleep(1)
+        console_body.send_keys(Keys.ENTER)
         time.sleep(20)
         print("✅ Команда выполнена")
+        
+        # Возврат к основному контексту
+        driver.switch_to.default_content()
 
         # 4. Получение обработанных данных
         print("📖 Открытие обработанного файла...")
         driver.get(f"https://www.pythonanywhere.com/user/{USERNAME}/files/home/{USERNAME}/moon_data_processed.json?edit")
         time.sleep(5)
         
-        # Получение содержимого через JavaScript
-        print("📋 Получение данных через JavaScript...")
-        processed_content = driver.execute_script("""
-            try {
-                return ace.edit(document.querySelector('.ace_editor')).getValue();
-            } catch(e) {
-                return document.querySelector('.ace_content').innerText;
-            }
-        """)
+        # Получение содержимого через активный элемент
+        print("📋 Получение данных...")
+        active_element = driver.switch_to.active_element
+        
+        # Выделяем и копируем содержимое
+        ActionChains(driver)\
+            .key_down(Keys.CONTROL)\
+            .send_keys('a')\
+            .key_up(Keys.CONTROL)\
+            .perform()
+        time.sleep(1)
+        ActionChains(driver)\
+            .key_down(Keys.CONTROL)\
+            .send_keys('c')\
+            .key_up(Keys.CONTROL)\
+            .perform()
+        time.sleep(1)
+        
+        # Вставляем из буфера в переменную
+        processed_content = driver.execute_script("return navigator.clipboard.readText()")
+        
+        if not processed_content:
+            # Альтернативный способ через активный элемент
+            processed_content = active_element.get_attribute('value')
         
         if not processed_content:
             raise Exception("Не удалось получить содержимое файла")
