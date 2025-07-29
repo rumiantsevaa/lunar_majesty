@@ -21,5 +21,12 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements.txt
 
-      - name: Run parser script
-        run: python parse_data.py
+      - name: Run parser script and capture output
+        id: parse
+        run: |
+          JSON_DATA=$(python parse_data.py)
+          echo "data=${JSON_DATA}" >> $GITHUB_OUTPUT
+
+      - name: Display parsed data (debug)
+        run: |
+          echo "${{ steps.parse.outputs.data }}"
