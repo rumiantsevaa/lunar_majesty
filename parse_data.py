@@ -37,7 +37,7 @@ def moon_dream_dictionary(driver):
                 break
 
         if target_index is not None:
-            following_tds = all_tds[target_index + 1 : target_index + 5]
+            following_tds = all_tds[target_index + 1 : target_index + 10]
             print("🌙 Moon Dream Dictionary:")
             for td in following_tds:
                 print(td.text.strip())
