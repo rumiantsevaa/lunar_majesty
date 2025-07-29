@@ -74,7 +74,7 @@ def moon_dream_dictionary(driver):
     # Вывод
     print("🌙 Moon Dream Dictionary:")
     for item in result:
-        print(item)
+        print(item, "\n")
 
 
 
