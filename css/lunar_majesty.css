@@ -8,7 +8,7 @@
 }
 @font-face {
   font-family: 'CardContentFont';
-  src: url('../fonts/kudry_weird-headline.otf') format('opentype');
+  src: url('../fonts/AMANE.otf') format('opentype');
 }
 
 :root {
@@ -130,7 +130,7 @@ body {
 }
 
 .card-content {
-  font-size: 0.95rem;
+  font-size: 0.7rem;
   font-family: 'CardContentFont', sans-serif;
   color: var(--silver-light);
   line-height: 1.4;
