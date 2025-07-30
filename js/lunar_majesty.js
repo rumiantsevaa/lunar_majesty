@@ -27,12 +27,10 @@ function updateCard() {
     titleElement.textContent = cards[currentIndex].title;
     contentElement.innerHTML = cards[currentIndex].content.replace(/\n/g, '<br>');
     
-    // Обновляем картинку
     if (imageElement && cards[currentIndex].image) {
       imageElement.src = cards[currentIndex].image;
       imageElement.alt = cards[currentIndex].title;
       imageElement.classList.remove('hidden');
-      // Скрываем картинку при ошибке загрузки
       imageElement.onerror = function() {
         this.classList.add('hidden');
       };
