@@ -50,7 +50,7 @@ jobs:
 
       - name: Update only cards array
         run: |
-          DATA_FILE="./data/moon_data_processed.json"
+          DATA_FILE="./moon_data_processed.json"
           JS_FILE="js/lunar_majesty.js"
 
           moon_today=$(jq -r '.moon_today.moon_today | "\(.current_time)\n🌙 Phase: \(.moon_phase_tonight)\nNew Moon: \(.new_moon)\nFirst Quarter: \(.first_quarter)"' "$DATA_FILE")
