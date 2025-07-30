@@ -2,11 +2,16 @@ import json
 import re
 from datetime import datetime
 
+print("🔍 Reading JSON data from artifacts...")
+
 # Читаем JSON данные
 with open('./artifacts/moon_data_processed.json', 'r', encoding='utf-8') as f:
     data = json.load(f)
 
-# Извлекаем данные
+print("📊 JSON data loaded successfully")
+print("🌙 Extracting moon data...")
+
+# Извлекаем данные из JSON структуры
 moon_today_data = data['moon_today']['moon_today']
 moon_today = f"{moon_today_data['current_time']}\n🌙 Phase: {moon_today_data['moon_phase_tonight']}\nNew Moon: {moon_today_data['new_moon']}\nFirst Quarter: {moon_today_data['first_quarter']}"
 
@@ -15,19 +20,36 @@ moon_dream = data['moon_dream']['moon_dream']['time_translated']
 inspiration_data = data['inspiration']['inspiration']
 inspiration = f"{inspiration_data['content']}\n\n— {inspiration_data['author']}"
 
-# Создаем JavaScript контент
+print(f"✅ Extracted data:")
+print(f"  - Moon today: {moon_today_data['current_time']} - {moon_today_data['moon_phase_tonight']}")
+print(f"  - Dream interpretation: {moon_dream[:50]}...")
+print(f"  - Inspiration: {inspiration_data['content'][:50]}...")
+
+print("📝 Creating JavaScript content...")
+
+# Маппинг картинок для каждой карточки
+card_images = {
+    "Moon today": "img/moon.avif",
+    "Moon Phase Dream Dictionary": "img/Boho-Moon.avif", 
+    "Daily inspiration": "img/Aesthetic-hands.avif"
+}
+
+# Создаем JavaScript контент с реальными данными из JSON
 js_content = f'''const cards = [
   {{
     title: "Moon today",
-    content: {json.dumps(moon_today)}
+    content: {json.dumps(moon_today)},
+    image: "img/moon.avif"
   }},
   {{
     title: "Moon Phase Dream Dictionary", 
-    content: {json.dumps(moon_dream)}
+    content: {json.dumps(moon_dream)},
+    image: "img/Boho-Moon.avif"
   }},
   {{
     title: "Daily inspiration",
-    content: {json.dumps(inspiration)}
+    content: {json.dumps(inspiration)},
+    image: "img/Aesthetic-hands.avif"
   }}
 ];
 
@@ -36,10 +58,22 @@ let currentIndex = 0;
 function updateCard() {{
   const titleElement = document.getElementById("card-title");
   const contentElement = document.getElementById("card-content");
+  const imageElement = document.getElementById("card-image");
   
   if (titleElement && contentElement && cards[currentIndex]) {{
     titleElement.textContent = cards[currentIndex].title;
     contentElement.innerHTML = cards[currentIndex].content.replace(/\\n/g, '<br>');
+    
+    // Обновляем картинку
+    if (imageElement && cards[currentIndex].image) {{
+      imageElement.src = cards[currentIndex].image;
+      imageElement.alt = cards[currentIndex].title;
+      imageElement.classList.remove('hidden');
+      // Скрываем картинку при ошибке загрузки
+      imageElement.onerror = function() {{
+        this.classList.add('hidden');
+      }};
+    }}
     
     const card = document.getElementById("carousel-card");
     card.style.opacity = '0.7';
@@ -71,10 +105,12 @@ document.addEventListener('DOMContentLoaded', function() {{
   }});
 }});'''
 
-# Записываем JavaScript файл
+print("💾 Writing JavaScript file...")
+# Записываем JavaScript файл с реальными данными
 with open('js/lunar_majesty.js', 'w', encoding='utf-8') as f:
     f.write(js_content)
 
+print("🕒 Updating HTML timestamp...")
 # Обновляем HTML с timestamp
 timestamp = datetime.utcnow().strftime('%Y-%m-%d %H:%M UTC')
 with open('index.html', 'r', encoding='utf-8') as f:
@@ -85,4 +121,5 @@ html_content = re.sub(r'<title>Lunar Majesty.*?</title>', f'<title>Lunar Majesty
 with open('index.html', 'w', encoding='utf-8') as f:
     f.write(html_content)
 
-print("✅ Files updated successfully")
+print("✅ All files updated successfully with fresh lunar data!")
+print(f"📅 Update timestamp: {timestamp}")
