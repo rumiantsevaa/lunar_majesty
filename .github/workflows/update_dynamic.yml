@@ -74,24 +74,30 @@ jobs:
           DATA_FILE="./artifacts/moon_data_processed.json"
           
           # Извлекаем данные и экранируем для JavaScript
-          moon_today=$(jq -r '.moon_today.moon_today | "\(.current_time)\n🌙 Phase: \(.moon_phase_tonight)\nNew Moon: \(.new_moon)\nFirst Quarter: \(.first_quarter)"' "$DATA_FILE" | sed 's/"/\\"/g' | sed 's/$/\\n/' | tr -d '\n' | sed 's/\\n$//')
+          moon_today=$(jq -r '.moon_today.moon_today | "\(.current_time)\n🌙 Phase: \(.moon_phase_tonight)\nNew Moon: \(.new_moon)\nFirst Quarter: \(.first_quarter)"' "$DATA_FILE")
           
-          moon_dream=$(jq -r '.moon_dream.moon_dream.time_translated' "$DATA_FILE" | sed 's/"/\\"/g')
+          moon_dream=$(jq -r '.moon_dream.moon_dream.time_translated' "$DATA_FILE")
           
-          inspiration=$(jq -r '.inspiration.inspiration | "\(.content)\n\n— \(.author)"' "$DATA_FILE" | sed 's/"/\\"/g' | sed 's/$/\\n/' | tr -d '\n' | sed 's/\\n$//')
+          inspiration=$(jq -r '.inspiration.inspiration | "\(.content)\n\n— \(.author)"' "$DATA_FILE")
           
-          # Сохраняем в переменные окружения
-          echo "MOON_TODAY<<EOF" >> $GITHUB_ENV
-          echo "$moon_today" >> $GITHUB_ENV
-          echo "EOF" >> $GITHUB_ENV
+          # Сохраняем в переменные окружения (экранируем специальные символы)
+          {
+            echo "MOON_TODAY<<EOF_MOON_TODAY"
+            echo "$moon_today"
+            echo "EOF_MOON_TODAY"
+          } >> $GITHUB_ENV
           
-          echo "MOON_DREAM<<EOF" >> $GITHUB_ENV
-          echo "$moon_dream" >> $GITHUB_ENV
-          echo "EOF" >> $GITHUB_ENV
+          {
+            echo "MOON_DREAM<<EOF_MOON_DREAM"
+            echo "$moon_dream"
+            echo "EOF_MOON_DREAM"
+          } >> $GITHUB_ENV
           
-          echo "INSPIRATION<<EOF" >> $GITHUB_ENV
-          echo "$inspiration" >> $GITHUB_ENV
-          echo "EOF" >> $GITHUB_ENV
+          {
+            echo "INSPIRATION<<EOF_INSPIRATION"
+            echo "$inspiration"
+            echo "EOF_INSPIRATION"
+          } >> $GITHUB_ENV
           
           echo "✅ Data extracted and formatted"
           
@@ -101,20 +107,25 @@ jobs:
           
           echo "🔄 Updating JavaScript file..."
           
-          # Создаем временный файл с новым содержимым
-          cat > temp_cards.js << 'EOF'
+          # Экранируем данные для безопасной вставки в JavaScript
+          MOON_TODAY_ESCAPED=$(printf '%s\n' "$MOON_TODAY" | sed 's/[[\.*^$()+?{|]/\\&/g' | sed 's/"/\\"/g' | sed ':a;N;$!ba;s/\n/\\n/g')
+          MOON_DREAM_ESCAPED=$(printf '%s\n' "$MOON_DREAM" | sed 's/[[\.*^$()+?{|]/\\&/g' | sed 's/"/\\"/g' | sed ':a;N;$!ba;s/\n/\\n/g')
+          INSPIRATION_ESCAPED=$(printf '%s\n' "$INSPIRATION" | sed 's/[[\.*^$()+?{|]/\\&/g' | sed 's/"/\\"/g' | sed ':a;N;$!ba;s/\n/\\n/g')
+          
+          # Создаем новый JavaScript файл
+          cat > "$JS_FILE" << 'JSEOF'
 const cards = [
   {
     title: "Moon today",
-    content: `$MOON_TODAY_PLACEHOLDER`
+    content: "MOON_TODAY_PLACEHOLDER"
   },
   {
     title: "Moon Phase Dream Dictionary", 
-    content: `$MOON_DREAM_PLACEHOLDER`
+    content: "MOON_DREAM_PLACEHOLDER"
   },
   {
     title: "Daily inspiration",
-    content: `$INSPIRATION_PLACEHOLDER`
+    content: "INSPIRATION_PLACEHOLDER"
   }
 ];
 
@@ -160,15 +171,12 @@ document.addEventListener('DOMContentLoaded', function() {
     }
   });
 });
-EOF
+JSEOF
           
           # Подставляем данные
-          sed -i "s|\$MOON_TODAY_PLACEHOLDER|$MOON_TODAY|g" temp_cards.js
-          sed -i "s|\$MOON_DREAM_PLACEHOLDER|$MOON_DREAM|g" temp_cards.js  
-          sed -i "s|\$INSPIRATION_PLACEHOLDER|$INSPIRATION|g" temp_cards.js
-          
-          # Заменяем файл
-          mv temp_cards.js "$JS_FILE"
+          sed -i "s/MOON_TODAY_PLACEHOLDER/$MOON_TODAY_ESCAPED/g" "$JS_FILE"
+          sed -i "s/MOON_DREAM_PLACEHOLDER/$MOON_DREAM_ESCAPED/g" "$JS_FILE"
+          sed -i "s/INSPIRATION_PLACEHOLDER/$INSPIRATION_ESCAPED/g" "$JS_FILE"
           
           echo "✅ JavaScript file updated"
           
