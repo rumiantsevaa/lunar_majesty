@@ -13,6 +13,9 @@ jobs:
     outputs:
       run_id: ${{ steps.fetch.outputs.run_id }}
     steps:
+      - name: Checkout repo (for GA CLI context)
+        uses: actions/checkout@v4
+        
       - name: Get latest successful run ID of parser workflow
         id: fetch
         run: |
