@@ -1,0 +1,49 @@
+name: Update Dynamic Content on Site
+
+on:
+  workflow_run:
+    workflows: ["Moon Data Parser and Processor"]  # parse+process.yml
+    types:
+      - completed
+  workflow_dispatch: 
+
+jobs:
+  get-latest-artifact:
+    runs-on: ubuntu-latest
+    outputs:
+      run_id: ${{ steps.fetch.outputs.run_id }}
+    steps:
+      - name: Get latest successful run ID of parser workflow
+        id: fetch
+        run: |
+          echo "📡 Fetching latest successful run ID..."
+          run_id=$(gh run list \
+            --workflow="parse+process.yml" \
+            --branch=main \
+            --json databaseId,status,conclusion \
+            --jq '[.[] | select(.status=="completed" and .conclusion=="success")][0].databaseId')
+          
+          echo "Found run_id=$run_id"
+          echo "run_id=$run_id" >> "$GITHUB_OUTPUT"
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  download-and-use:
+    needs: get-latest-artifact
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download artifact from previous run
+        uses: dawidd6/action-download-artifact@v4
+        with:
+          workflow: parse+process.yml
+          run_id: ${{ needs.get-latest-artifact.outputs.run_id }}
+          name: moon-data-processed
+          path: ./artifacts
+
+      - name: Use the artifact
+        run: |
+          echo "📁 Contents of moon_data_processed.json:"
+          cat ./artifacts/moon_data_processed.json
+
+
+
