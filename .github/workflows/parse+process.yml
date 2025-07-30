@@ -1,11 +1,21 @@
 name: Moon Data Parser and Processor
 
+# CI/CD workflow for daily updates of https://rumiantsevaa.github.io/lunar_majesty/ data on GitHub Pages 
+
+# GitHub Actions runner (works as master node) scrapes raw moon data - parse_data.py
+# (Acts as GA worker that controls the how GA enviroment gets the data, how it's parsed and saves it in GA workflow artifacts.) 
+
+# Raw data is sent to PythonAnywhere (PA) node that acts as enviroment for data processing - bot_launcher.py 
+# (Acts as GA worker that controls the how PA enviroment gets the data, how it's processed and saves it in GA workflow artifacts.) 
+
+# Future implementation: GA worker commits processed data to repo (triggering Pages rebuild daily)
+
 on:
-  workflow_dispatch:
+  workflow_dispatch:  # Manual trigger (will be changed to scheduled)
 
 jobs:
   parse-and-process:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-latest  # Primary worker node
     timeout-minutes: 15
 
     steps:
@@ -24,7 +34,7 @@ jobs:
       - name: Run and save parser output
         run: |
           python parse_data.py > moon_data.json
-          echo "✅ Данные луны сохранены в moon_data.json"
+          echo "✅ Raw moon data collected in moon_data.json"
           ls -la moon_data.json
 
       - name: Read JSON to env var
@@ -32,7 +42,7 @@ jobs:
         run: |
           CONTENT=$(cat moon_data.json | python3 -c 'import json,sys; print(json.dumps(json.load(sys.stdin)))')
           echo "MOON_JSON=$CONTENT" >> $GITHUB_ENV
-          echo "✅ JSON данные загружены в переменную окружения"
+          echo "✅ JSON data loaded into environment variable"
 
       - name: Launch bot with Selenium
         env:
@@ -40,21 +50,21 @@ jobs:
           PA_PASSWORD: ${{ secrets.PA_PASSWORD }}
           MOON_JSON: ${{ env.MOON_JSON }}
         run: |
-          echo "🚀 Запуск бота с обработкой данных..."
+          echo "🚀 Launching a selenium controller bot for data processing in the PA node enviroment..."
           python bot_launcher.py
 
       - name: Verify processed file
         run: |
           if [ -f "moon_data_processed.json" ]; then
-            echo "✅ Обработанный файл создан успешно!"
-            echo "📊 Размер файла: $(wc -c < moon_data_processed.json) байт"
-            echo "📝 Первые 200 символов:"
+            echo "✅ The processed file was created successfully!"
+            echo "📊 File size: $(wc -c < moon_data_processed.json) byte"
+            echo "📝 First 200 characters:"
             head -c 200 moon_data_processed.json
             echo ""
             echo "..."
           else
-            echo "❌ Обработанный файл не найден"
-            ls -la *.json || echo "Нет JSON файлов"
+            echo "❌ Processed file not found"
+            ls -la *.json || echo "No JSON files"
           fi
 
       - name: Upload processed result
@@ -70,11 +80,11 @@ jobs:
       - name: Show final status
         if: always()
         run: |
-          echo "📋 Итоговый статус:"
-          ls -la *.json || echo "Нет JSON файлов"
+          echo "📋 Final status:"
+          ls -la *.json || echo "No JSON files"
           if [ -f "moon_data_processed.json" ]; then
-            echo "✅ Обработка завершена успешно!"
+            echo "✅ Processing completed successfully!"
           else
-            echo "⚠️ Обработанный файл не создан"
+            echo "⚠️ The processed file was not created."
           fi
-          echo "✅ Workflow завершен"
+          echo "✅ Workflow completed. Waiting for the worker environment to complete post steps."
