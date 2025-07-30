@@ -209,14 +209,10 @@ body {
 
 .site-footer a {
   text-decoration: none;
-  color: #000 !important;
+  color: #000;
   font-style: italic;
   font-family: 'CardTitleFont', sans-serif;
   font-weight: normal;
-  -webkit-text-fill-color: #000 !important;
-  background: none !important;
-  -webkit-background-clip: initial !important;
-  background-clip: initial !important;
 }
 
 .site-footer a:hover {
