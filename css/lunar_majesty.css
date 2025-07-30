@@ -61,10 +61,10 @@ body {
   font-weight: bold;
 }
 
-/* === Обёртка карточки для белой рамки === */
+
 .carousel-card-wrapper {
   background: linear-gradient(135deg, #ffffff, #dddddd);
-  padding: 2px;
+  padding: 1px;
   border-radius: 1rem;
   width: 90%;
   max-width: 800px;
@@ -72,7 +72,7 @@ body {
   box-shadow: 0 0 10px rgba(255, 255, 255, 0.1);
 }
 
-/* Контейнер карточек */
+
 .carousel-container {
   position: relative;
   width: 90%;
@@ -83,7 +83,7 @@ body {
   margin-bottom: 2rem;
 }
 
-/* Карточка */
+
 .carousel-card {
   background-color: #000;
   border-radius: 1rem;
