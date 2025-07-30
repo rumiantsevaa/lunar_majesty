@@ -2,10 +2,10 @@ name: Update Dynamic Content on Site
 
 on:
   workflow_run:
-    workflows: ["Moon Data Parser and Processor"]  # parse+process.yml
+    workflows: ["Moon Data Parser and Processor"]
     types:
       - completed
-  workflow_dispatch: 
+  workflow_dispatch:
 
 jobs:
   get-latest-artifact:
@@ -13,8 +13,10 @@ jobs:
     outputs:
       run_id: ${{ steps.fetch.outputs.run_id }}
     steps:
-      - name: Checkout repo (for GA CLI context)
+      - name: Checkout repo
         uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.PAT_FOR_LUNAR_MAJESTY_DATA_UPDATE }}
         
       - name: Get latest successful run ID of parser workflow
         id: fetch
@@ -26,15 +28,25 @@ jobs:
             --json databaseId,status,conclusion \
             --jq '[.[] | select(.status=="completed" and .conclusion=="success")][0].databaseId')
           
+          if [ -z "$run_id" ] || [ "$run_id" = "null" ]; then
+            echo "❌ No successful run found"
+            exit 1
+          fi
+          
           echo "Found run_id=$run_id"
           echo "run_id=$run_id" >> "$GITHUB_OUTPUT"
         env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_TOKEN: ${{ secrets.PAT_FOR_LUNAR_MAJESTY_DATA_UPDATE }}
 
-  download-and-use:
+  update-site-content:
     needs: get-latest-artifact
     runs-on: ubuntu-latest
     steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.PAT_FOR_LUNAR_MAJESTY_DATA_UPDATE }}
+          
       - name: Download artifact from previous run
         uses: dawidd6/action-download-artifact@v4
         with:
@@ -42,37 +54,144 @@ jobs:
           run_id: ${{ needs.get-latest-artifact.outputs.run_id }}
           name: moon-data-processed
           path: ./artifacts
-
-      - name: Use the artifact
+          
+      - name: Verify artifact contents
         run: |
-          echo "📁 Contents of moon_data_processed.json:"
-          cat ./artifacts/moon_data_processed.json
-
-      - name: Update only cards array
+          echo "📁 Verifying artifact contents..."
+          if [ -f "./artifacts/moon_data_processed.json" ]; then
+            echo "✅ Artifact found"
+            echo "📄 Sample content:"
+            cat ./artifacts/moon_data_processed.json | jq . | head -20
+          else
+            echo "❌ Artifact file not found!"
+            ls -la ./artifacts/
+            exit 1
+          fi
+          
+      - name: Extract and format data
+        id: extract_data
         run: |
           DATA_FILE="./artifacts/moon_data_processed.json"
+          
+          # Извлекаем данные и экранируем для JavaScript
+          moon_today=$(jq -r '.moon_today.moon_today | "\(.current_time)\n🌙 Phase: \(.moon_phase_tonight)\nNew Moon: \(.new_moon)\nFirst Quarter: \(.first_quarter)"' "$DATA_FILE" | sed 's/"/\\"/g' | sed 's/$/\\n/' | tr -d '\n' | sed 's/\\n$//')
+          
+          moon_dream=$(jq -r '.moon_dream.moon_dream.time_translated' "$DATA_FILE" | sed 's/"/\\"/g')
+          
+          inspiration=$(jq -r '.inspiration.inspiration | "\(.content)\n\n— \(.author)"' "$DATA_FILE" | sed 's/"/\\"/g' | sed 's/$/\\n/' | tr -d '\n' | sed 's/\\n$//')
+          
+          # Сохраняем в переменные окружения
+          echo "MOON_TODAY<<EOF" >> $GITHUB_ENV
+          echo "$moon_today" >> $GITHUB_ENV
+          echo "EOF" >> $GITHUB_ENV
+          
+          echo "MOON_DREAM<<EOF" >> $GITHUB_ENV
+          echo "$moon_dream" >> $GITHUB_ENV
+          echo "EOF" >> $GITHUB_ENV
+          
+          echo "INSPIRATION<<EOF" >> $GITHUB_ENV
+          echo "$inspiration" >> $GITHUB_ENV
+          echo "EOF" >> $GITHUB_ENV
+          
+          echo "✅ Data extracted and formatted"
+          
+      - name: Update JavaScript file
+        run: |
           JS_FILE="js/lunar_majesty.js"
+          
+          echo "🔄 Updating JavaScript file..."
+          
+          # Создаем временный файл с новым содержимым
+          cat > temp_cards.js << 'EOF'
+const cards = [
+  {
+    title: "Moon today",
+    content: `$MOON_TODAY_PLACEHOLDER`
+  },
+  {
+    title: "Moon Phase Dream Dictionary", 
+    content: `$MOON_DREAM_PLACEHOLDER`
+  },
+  {
+    title: "Daily inspiration",
+    content: `$INSPIRATION_PLACEHOLDER`
+  }
+];
 
-          moon_today=$(jq -r '.moon_today.moon_today | "\(.current_time)\n🌙 Phase: \(.moon_phase_tonight)\nNew Moon: \(.new_moon)\nFirst Quarter: \(.first_quarter)"' "$DATA_FILE")
-          moon_dream=$(jq -r '.moon_dream.moon_dream.time_translated' "$DATA_FILE")
-          inspiration=$(jq -r '.inspiration.inspiration | "\(.content)\n\n\(.author)"' "$DATA_FILE")
+let currentIndex = 0;
 
-          new_cards=$(jq -n --arg mt "$moon_today" --arg md "$moon_dream" --arg insp "$inspiration" \
-            '[{title:"Moon today",content:$mt},{title:"Moon Phase Dream Dictionary",content:$md},{title:"Daily inspiration",content:$insp}]')
-
-          escaped_cards=$(echo "$new_cards" | jq -Rs .)
-          awk -v new_cards="const cards = $new_cards;" '
-            BEGIN { replaced = 0 }
-            {
-              if ($0 ~ /const cards = \[.*\];/ && !replaced) {
-                print new_cards
-                replaced = 1
-              } else {
-                print
-              }
-            }
-          ' "$JS_FILE" > tmp.js && mv tmp.js "$JS_FILE"
+function updateCard() {
+  const titleElement = document.getElementById("card-title");
+  const contentElement = document.getElementById("card-content");
+  
+  if (titleElement && contentElement && cards[currentIndex]) {
+    titleElement.textContent = cards[currentIndex].title;
+    contentElement.innerHTML = cards[currentIndex].content.replace(/\n/g, '<br>');
     
+    // Добавляем плавный эффект при смене карточки
+    const card = document.getElementById("carousel-card");
+    card.style.opacity = '0.7';
+    setTimeout(() => {
+      card.style.opacity = '1';
+    }, 200);
+  }
+}
 
+function nextCard() {
+  currentIndex = (currentIndex + 1) % cards.length;
+  updateCard();
+}
 
+function prevCard() {
+  currentIndex = (currentIndex - 1 + cards.length) % cards.length;
+  updateCard();
+}
 
+// Инициализация при загрузке страницы
+document.addEventListener('DOMContentLoaded', function() {
+  updateCard();
+  
+  // Поддержка клавиатуры
+  document.addEventListener('keydown', function(event) {
+    if (event.key === 'ArrowLeft') {
+      prevCard();
+    } else if (event.key === 'ArrowRight') {
+      nextCard();
+    }
+  });
+});
+EOF
+          
+          # Подставляем данные
+          sed -i "s|\$MOON_TODAY_PLACEHOLDER|$MOON_TODAY|g" temp_cards.js
+          sed -i "s|\$MOON_DREAM_PLACEHOLDER|$MOON_DREAM|g" temp_cards.js  
+          sed -i "s|\$INSPIRATION_PLACEHOLDER|$INSPIRATION|g" temp_cards.js
+          
+          # Заменяем файл
+          mv temp_cards.js "$JS_FILE"
+          
+          echo "✅ JavaScript file updated"
+          
+      - name: Update timestamp in HTML
+        run: |
+          TIMESTAMP=$(date -u '+%Y-%m-%d %H:%M UTC')
+          sed -i "s|<title>Lunar Majesty</title>|<title>Lunar Majesty - Updated $TIMESTAMP</title>|g" index.html
+          echo "✅ HTML timestamp updated"
+          
+      - name: Commit and push changes
+        run: |
+          git config --local user.email "lunar-bot@github.com"
+          git config --local user.name "Lunar Majesty Bot"
+          
+          # Проверяем наличие изменений
+          if git diff --quiet; then
+            echo "📄 No changes detected"
+            exit 0
+          fi
+          
+          echo "📝 Changes detected, committing..."
+          git add .
+          git commit -m "🌙 Auto-update lunar data $(date +'%Y-%m-%d %H:%M UTC')"
+          git push origin main
+          
+          echo "✅ Changes successfully pushed to repository"
