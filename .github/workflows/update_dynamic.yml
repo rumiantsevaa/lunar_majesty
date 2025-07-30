@@ -169,7 +169,7 @@ jobs:
               f.write(js_content)
           
           
-          print("✅ All files updated successfully with fresh lunar data!")
+          print("✅ All files updated successfully with up-to-date lunar data!")
 
           SCRIPT_END
           
