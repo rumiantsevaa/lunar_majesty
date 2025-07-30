@@ -11,7 +11,6 @@
   src: url('../fonts/kudry_weird-headline.otf') format('opentype');
 }
 
-/* Общие переменные */
 :root {
   --silver-light: #f0f0f0;
   --silver-mid: #ccc;
@@ -42,10 +41,9 @@ body {
   justify-content: start;
   min-height: 100vh;
   padding-top: 3rem;
-  padding-bottom: 5rem; /* Увеличено место для серебряного футера */
+  padding-bottom: 5rem;
 }
 
-/* Серебряный эффект */
 .silver-text {
   background: var(--silver-gradient);
   -webkit-background-clip: text;
@@ -54,7 +52,6 @@ body {
   text-shadow: var(--text-shadow);
 }
 
-/* Заголовок страницы */
 .main-title {
   font-size: 1.5rem;
   text-align: center;
@@ -64,24 +61,33 @@ body {
   font-weight: bold;
 }
 
-/* === Контейнер карточек === */
+/* === Обёртка карточки для белой рамки === */
+.carousel-card-wrapper {
+  background: linear-gradient(135deg, #ffffff, #dddddd);
+  padding: 2px;
+  border-radius: 1rem;
+  width: 90%;
+  max-width: 800px;
+  margin: 0 auto;
+  box-shadow: 0 0 10px rgba(255, 255, 255, 0.1);
+}
+
+/* Контейнер карточек */
 .carousel-container {
   position: relative;
-  width: 90%; /* ← изменено: ширина 90% экрана */
-  max-width: 100%; /* ← убрано фиксированное ограничение */
+  width: 90%;
+  max-width: 100%;
   display: flex;
   align-items: center;
   justify-content: center;
   margin-bottom: 2rem;
 }
 
-/* Сама карточка */
+/* Карточка */
 .carousel-card {
-  border: 0.7px solid transparent;
-  border-image: linear-gradient(145deg, #aaa, #fff, #aaa) 1;
-  border-radius: 1rem;
-  overflow: hidden; /* ← добавлено: закругление белой рамки */
   background-color: #000;
+  border-radius: 1rem;
+  overflow: hidden;
   text-align: center;
   min-height: 400px;
   width: 100%;
@@ -100,7 +106,6 @@ body {
     inset 0 0 20px rgba(255, 255, 255, 0.1);
 }
 
-/* Название карточки */
 .card-title {
   font-size: 1.1rem;
   font-family: 'CardTitleFont', sans-serif;
@@ -108,11 +113,10 @@ body {
   font-weight: bold;
 }
 
-/* Картинка карточки */
 .card-image {
-  width: 90%; /* ← изменено: занимает 90% ширины карточки */
+  width: 90%;
   height: auto;
-  max-height: 250px; /* ← увеличено для большего изображения */
+  max-height: 250px;
   object-fit: contain;
   border-radius: 0.5rem;
   margin: 0 auto;
@@ -125,7 +129,6 @@ body {
   display: none;
 }
 
-/* Содержимое карточки */
 .card-content {
   font-size: 0.95rem;
   font-family: 'CardContentFont', sans-serif;
@@ -138,7 +141,6 @@ body {
   word-wrap: break-word;
 }
 
-/* Стрелки-кавычки */
 .arrow {
   background: none;
   border: none;
@@ -160,12 +162,10 @@ body {
 
 .arrow.left::before {
   content: '«';
-  display: inline-block;
 }
 
 .arrow.right::before {
   content: '»';
-  display: inline-block;
 }
 
 .arrow:hover {
@@ -186,7 +186,6 @@ body {
   transform: scale(0.95);
 }
 
-/* Футер - серебряный фон, черный текст */
 .site-footer {
   font-size: 0.7rem;
   font-family: 'CardTitleFont', sans-serif;
@@ -213,7 +212,6 @@ body {
   font-weight: bold;
 }
 
-/* Адаптивность */
 @media (max-width: 768px) {
   .carousel-container {
     width: 85%;
@@ -255,7 +253,6 @@ body {
   }
 }
 
-/* Анимация загрузки */
 @keyframes pulse {
   0%, 100% { opacity: 1; }
   50% { opacity: 0.7; }
