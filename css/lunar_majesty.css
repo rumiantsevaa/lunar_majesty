@@ -212,6 +212,15 @@ body {
   font-weight: bold;
 }
 
+.site-footer a {
+  text-decoration: none;
+  color: inherit;
+}
+
+.site-footer a:hover {
+  text-decoration: underline;
+}
+
 @media (max-width: 768px) {
   .carousel-container {
     width: 85%;
