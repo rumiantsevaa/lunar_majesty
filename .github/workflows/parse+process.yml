@@ -11,8 +11,10 @@ name: Moon Data Parser and Processor
 # Future implementation: GA worker commits processed data to repo (triggering Pages rebuild daily)
 
 on:
-  workflow_dispatch:  # Manual trigger (will be changed to scheduled)
-
+  workflow_dispatch: 
+  schedule:
+    - cron: '0 0 * * *' 
+    
 jobs:
   parse-and-process:
     runs-on: ubuntu-latest  # Primary worker node
