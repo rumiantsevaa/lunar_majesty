@@ -7,6 +7,13 @@ from selenium.webdriver.support import expected_conditions as EC
 from bs4 import BeautifulSoup
 
 def moon_today_description(driver):
+    """Scrapes current moon phase data from timeanddate.com
+    Returns structured data including:
+    - Current time
+    - Moon phase tonight
+    - First quarter date
+    - New moon date
+    """
     driver.get("https://www.timeanddate.com/moon/phases/ukraine/kyiv")
     table_rows = driver.find_elements(By.CSS_SELECTOR, "table.table--left tr")
     
@@ -28,6 +35,13 @@ def moon_today_description(driver):
     }
 
 def moon_dream_dictionary(driver):
+    """Extracts moon-related dream interpretation data from rivendel.ru
+    Returns structured dream analysis including:
+    - Weekday
+    - Moon day and phase
+    - Time and zodiac sign
+    - Dream interpretation
+    """
     driver.get("https://rivendel.ru/dream_lenta.php")
     soup = BeautifulSoup(driver.page_source, "html.parser")
     
@@ -39,18 +53,15 @@ def moon_dream_dictionary(driver):
     current_tr = target_tr
     result = []
 
-    # День недели
     current_tr = current_tr.find_next_sibling("tr")
     tds = current_tr.find_all("td")
     weekday = ""
     if len(tds) == 2:
         weekday = tds[1].get_text(strip=True)
 
-    # Лунный день и фаза
     current_tr = current_tr.find_next_sibling("tr")
     moon_day_phase = [td.get_text(strip=True) for td in current_tr.find_all("td")]
 
-    # Время и знак зодиака
     current_tr = current_tr.find_next_sibling("tr")
     time_zodiac = []
     for td in current_tr.find_all("td"):
@@ -60,7 +71,6 @@ def moon_dream_dictionary(driver):
         else:
             time_zodiac.append(td.get_text(strip=True))
 
-    # Толкование
     current_tr = current_tr.find_next_sibling("tr")
     interpretation = current_tr.get_text(separator="\n", strip=True)
 
@@ -76,6 +86,13 @@ def moon_dream_dictionary(driver):
     }
 
 def day_inspiration(driver):
+    """Fetches daily inspiration quote from greatday.com
+    Returns structured data including:
+    - Date
+    - Title
+    - Content
+    - Author
+    """
     driver.get("https://www.greatday.com/")
     try:
         WebDriverWait(driver, 10).until(EC.presence_of_element_located((By.ID, "messageBox")))
@@ -103,14 +120,18 @@ if __name__ == "__main__":
     driver = uc.Chrome(options=options)
 
     try:
+        # Execute all scraping functions and combine results
         data = {
             "moon_today": moon_today_description(driver),
             "moon_dream": moon_dream_dictionary(driver),
             "inspiration": day_inspiration(driver)
         }
+        # Output combined data as pretty-printed JSON
         print(json.dumps(data, ensure_ascii=False, indent=2))
     except Exception as e:
+        # Handle any errors during execution
         print(f"Error: {str(e)}", file=sys.stderr)
         sys.exit(1)
     finally:
+        # Ensure browser is closed even if errors occur
         driver.quit()
