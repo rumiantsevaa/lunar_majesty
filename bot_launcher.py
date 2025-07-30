@@ -15,6 +15,7 @@ DOWNLOAD_DIR = os.path.abspath("downloads")
 os.makedirs(DOWNLOAD_DIR, exist_ok=True)
 
 def wait_and_click(driver, by, value, timeout=10):
+    """Wait for element and click it with retries"""
     for _ in range(timeout * 2):
         try:
             element = driver.find_element(by, value)
@@ -25,6 +26,7 @@ def wait_and_click(driver, by, value, timeout=10):
     return False
 
 def wait_and_type(driver, by, value, text, timeout=10):
+    """Wait for input field and type text with retries"""
     for _ in range(timeout * 2):
         try:
             el = driver.find_element(by, value)
@@ -36,10 +38,10 @@ def wait_and_type(driver, by, value, text, timeout=10):
     return False
 
 def wait_for_file(filename, timeout=15):
-    """Ждём появления файла и завершения скачивания (.crdownload)"""
+    """Wait for file to appear and finish downloading (check for .crdownload)"""
     for _ in range(timeout * 2):
         if os.path.exists(filename) and not filename.endswith(".crdownload"):
-            # Проверяем, что файл не временный (не загружается)
+            # Verify no temporary download files exist
             if not any(fname.startswith(filename) and fname.endswith(".crdownload") for fname in os.listdir(DOWNLOAD_DIR)):
                 return True
         time.sleep(0.5)
@@ -47,27 +49,27 @@ def wait_for_file(filename, timeout=15):
     
 
 def run():
-    print("🚀 Запуск бота...")
+    print("🚀 Initialization...")
     print(f"📋 Username: {USERNAME}")
     print(f"🌙 Moon data available: {'Yes' if MOON_JSON else 'No'}")
     
     if not USERNAME or not PASSWORD:
-        print("❌ ОШИБКА: Не заданы PA_USERNAME или PA_PASSWORD")
+        print("❌ ERROR: PA_USERNAME or PA_PASSWORD not set")
         return
     
     if not MOON_JSON:
-        print("❌ ОШИБКА: Не найдены данные MOON_JSON")
+        print("❌ ERROR: MOON_JSON data not found")
         return
     
     try:
         moon_data = json.loads(MOON_JSON)
-        print(f"✅ Данные луны загружены: {len(moon_data)} разделов")
+        print(f"✅ Moon data loaded: {len(moon_data)} sections")
     except json.JSONDecodeError as e:
-        print(f"❌ ОШИБКА парсинга JSON: {e}")
+        print(f"❌ JSON parsing ERROR: {e}")
         return
 
     options = uc.ChromeOptions()
-    # Настройки скачивания, чтобы не появлялся диалог
+    # Download preferences to suppress download dialog
     prefs = {
         "download.default_directory": DOWNLOAD_DIR,
         "download.prompt_for_download": False,
@@ -80,29 +82,29 @@ def run():
     options.add_argument("--no-sandbox")
     options.add_argument("--disable-dev-shm-usage")
     options.add_argument("--window-size=1920,1080")
-    print("🌐 Запуск Chrome...")
+    print("🌐 Starting Chrome...")
     driver = uc.Chrome(options=options)
     
     try:
-        # 1. Логин в PythonAnywhere
-        print("🔐 Выполняется вход в PythonAnywhere...")
+        # 1. Login to PythonAnywhere
+        print("🔐 Logging into PythonAnywhere...")
         driver.get("https://www.pythonanywhere.com/login/")
         wait_and_type(driver, By.ID, "id_auth-username", USERNAME)
         wait_and_type(driver, By.ID, "id_auth-password", PASSWORD)
         wait_and_click(driver, By.ID, "id_next")
         time.sleep(3)
-        print("✅ Вход выполнен")
+        print("✅ Login successful")
 
-        # 2. Редактирование moon_data.json
-        print("📝 Открытие файла moon_data.json для редактирования...")
+        # 2.  Edit moon_data.json file on remote PA node 
+        print("📝 Opening moon_data.json for editing...")
         driver.get(f"https://www.pythonanywhere.com/user/{USERNAME}/files/home/{USERNAME}/moon_data.json?edit")
         time.sleep(5)
         
-        # Находим активный элемент (редактор уже в фокусе)
+        # Find active element (editor already in focus)
         active_element = driver.switch_to.active_element
         
-        # Выделить всё и удалить
-        print("📋 Очистка редактора...")
+        # Select all and delete
+        print("📋 Clearing editor...")
         ActionChains(driver)\
             .key_down(Keys.CONTROL)\
             .send_keys('a')\
@@ -112,29 +114,29 @@ def run():
         active_element.send_keys(Keys.DELETE)
         time.sleep(1)
         
-        # Вставка новых данных
-        print("📋 Вставка данных JSON...")
+        # Insert new data into remote PA node 
+        print("📋 Inserting JSON data...")
         for chunk in [MOON_JSON[i:i+100] for i in range(0, len(MOON_JSON), 100)]:
             active_element.send_keys(chunk)
             time.sleep(0.1)
         time.sleep(2)
         
-        # Сохранение файла
-        print("💾 Сохранение файла...")
+        # Save file on remote PA node 
+        print("💾 Saving file...")
         ActionChains(driver)\
             .key_down(Keys.CONTROL)\
             .send_keys('s')\
             .key_up(Keys.CONTROL)\
             .perform()
         time.sleep(3)
-        print("✅ Файл moon_data.json сохранен")
+        print("✅ File moon_data.json saved")
 
-        # 3. Работа с консолью (устойчивый метод)
-        print("🖥️ Открытие консоли...")
+        # 3. Console operations on PA node
+        print("🖥️ Opening console...")
         driver.get(f"https://www.pythonanywhere.com/user/{USERNAME}/consoles/")
         time.sleep(3)
 
-        # Закрыть старые консоли
+        # Close old consoles
         close_buttons = driver.find_elements(By.CSS_SELECTOR, 'span.glyphicon-remove')
         for btn in close_buttons:
             try:
@@ -143,68 +145,68 @@ def run():
             except:
                 pass
 
-        # Вернуться в файловый менеджер
+        # Return to file manager 
         driver.get(f"https://www.pythonanywhere.com/user/{USERNAME}/files/home/{USERNAME}")
         time.sleep(2)
 
-        # Клик по ссылке на запуск консоли
-        print("🚪 Запуск новой bash-консоли...")
+        # Click console launch link
+        print("🚪 Starting new bash console...")
         open_link = driver.find_element(By.CSS_SELECTOR, f'a[href="/user/{USERNAME}/consoles/bash//home/{USERNAME}/new"]')
         open_link.click()
         time.sleep(10)
 
-        # Переключение на iframe консоли
+        # Switch to console iframe
         print("📺 Переключение на iframe консоли...")
         driver.switch_to.frame(driver.find_element(By.ID, "id_console"))
         time.sleep(5)
 
-        # Ввод команды
+        # Enter command to process data transfered to PA node 
         console_body = driver.find_element(By.TAG_NAME, "body")
         actions = ActionChains(driver)
         actions.move_to_element(console_body).click()
         actions.send_keys('python3 pythonanywhere_starter.py')
         actions.send_keys(Keys.ENTER)
         actions.perform()
-        print("✅ Команда отправлена")
+        print("✅ Command to process transfered data sent")
         time.sleep(20)
 
-        # Возврат в основной контекст
+        # Return to main context
         driver.switch_to.default_content()
 
-        # 4. Получение обработанных данных через скачивание
-        print("📖 Открытие страницы файлов для скачивания обработанного файла...")
+        # 4. Download processed data
+        print("📖 Opening files page to download processed file...")
         driver.get(f"https://www.pythonanywhere.com/user/{USERNAME}/files/home/{USERNAME}")
         time.sleep(5)
 
-        print("⬇️ Кликаем по ссылке скачивания moon_data_processed.json")
+        print("⬇️ Clicking download link for moon_data_processed.json")
         download_link = driver.find_element(By.CSS_SELECTOR, 'a.download_link[href$="moon_data_processed.json"]')
         download_link.click()
 
-        # Ждём появления файла в папке загрузок
+        # Wait for file to appear in downloads
         local_filename = os.path.join(DOWNLOAD_DIR, "moon_data_processed.json")
-        print(f"⏳ Ждём скачивания файла: {local_filename} ...")
+        print(f"⏳ Waiting for file download: {local_filename} ...")
         if not wait_for_file(local_filename):
-            raise Exception("Файл moon_data_processed.json не скачался за отведённое время")
+            raise Exception("File moon_data_processed.json didn't download in time")
 
-        # Читаем скачанный файл
-        print("📋 Читаем скачанный файл...")
+        # Read downloaded file
+        print("📋 Reading downloaded file...")
         with open(local_filename, "r", encoding="utf-8") as f:
             processed_content = f.read()
 
-        print(f"✅ Файл moon_data_processed.json прочитан ({len(processed_content)} символов)")
-        print(f"📝 Предварительный просмотр: {processed_content[:200]}...")
+        print(f"✅ File moon_data_processed.json read ({len(processed_content)} characters)")
+        print(f"📝 Preview: {processed_content[:200]}...")
 
-        # Перемещаем файл в рабочую директорию, чтобы GitHub Actions его увидел
+        # Move file to working directory for GitHub Actions
         dest_path = os.path.join(os.getcwd(), "moon_data_processed.json")
         shutil.copy(local_filename, dest_path)
-        print(f"✅ Файл скопирован в рабочую директорию: {dest_path}")
+        print(f"✅ File copied to working directory: {dest_path}")
         
     except Exception as e:
-        print(f"❌ ОШИБКА: {e}")
+        print(f"❌ ERROR: {e}")
         import traceback
         traceback.print_exc()
     finally:
-        print("🔚 Закрытие браузера...")
+        print("🔚 Closing browser...")
         driver.quit()
 
 if __name__ == "__main__":
