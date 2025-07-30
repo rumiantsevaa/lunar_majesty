@@ -2,11 +2,16 @@ import json
 import re
 from datetime import datetime
 
+print("🔍 Reading JSON data from artifacts...")
+
 # Читаем JSON данные
 with open('./artifacts/moon_data_processed.json', 'r', encoding='utf-8') as f:
     data = json.load(f)
 
-# Извлекаем данные
+print("📊 JSON data loaded successfully")
+print("🌙 Extracting moon data...")
+
+# Извлекаем данные из JSON структуры
 moon_today_data = data['moon_today']['moon_today']
 moon_today = f"{moon_today_data['current_time']}\n🌙 Phase: {moon_today_data['moon_phase_tonight']}\nNew Moon: {moon_today_data['new_moon']}\nFirst Quarter: {moon_today_data['first_quarter']}"
 
@@ -15,7 +20,14 @@ moon_dream = data['moon_dream']['moon_dream']['time_translated']
 inspiration_data = data['inspiration']['inspiration']
 inspiration = f"{inspiration_data['content']}\n\n— {inspiration_data['author']}"
 
-# Создаем JavaScript контент
+print(f"✅ Extracted data:")
+print(f"  - Moon today: {moon_today_data['current_time']} - {moon_today_data['moon_phase_tonight']}")
+print(f"  - Dream interpretation: {moon_dream[:50]}...")
+print(f"  - Inspiration: {inspiration_data['content'][:50]}...")
+
+print("📝 Creating JavaScript content...")
+
+# Создаем JavaScript контент с реальными данными из JSON
 js_content = f'''const cards = [
   {{
     title: "Moon today",
@@ -71,10 +83,12 @@ document.addEventListener('DOMContentLoaded', function() {{
   }});
 }});'''
 
-# Записываем JavaScript файл
+print("💾 Writing JavaScript file...")
+# Записываем JavaScript файл с реальными данными
 with open('js/lunar_majesty.js', 'w', encoding='utf-8') as f:
     f.write(js_content)
 
+print("🕒 Updating HTML timestamp...")
 # Обновляем HTML с timestamp
 timestamp = datetime.utcnow().strftime('%Y-%m-%d %H:%M UTC')
 with open('index.html', 'r', encoding='utf-8') as f:
@@ -85,4 +99,5 @@ html_content = re.sub(r'<title>Lunar Majesty.*?</title>', f'<title>Lunar Majesty
 with open('index.html', 'w', encoding='utf-8') as f:
     f.write(html_content)
 
-print("✅ Files updated successfully")
+print("✅ All files updated successfully with fresh lunar data!")
+print(f"📅 Update timestamp: {timestamp}")
