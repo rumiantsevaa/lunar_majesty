@@ -272,3 +272,21 @@ body {
 .loading {
   animation: pulse 2s infinite;
 }
+
+/* Принудительное исправление для символа @ в футере */
+.site-footer a::before,
+.site-footer a::after,
+.site-footer a *,
+.site-footer * {
+  -webkit-text-fill-color: #000 !important;
+  background: none !important;
+  -webkit-background-clip: initial !important;
+  background-clip: initial !important;
+  color: #000 !important;
+}
+
+.site-footer {
+  -webkit-text-fill-color: #000 !important;
+  background-clip: initial !important;
+  -webkit-background-clip: initial !important;
+}
