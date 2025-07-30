@@ -207,18 +207,16 @@ body {
   font-style: italic;
 }
 
-.site-footer b {
-  color: #222;
-  font-weight: bold;
-}
-
 .site-footer a {
   text-decoration: none;
-  color: inherit;
+  color: #000;
+  font-style: italic;
+  font-family: 'CardTitleFont', sans-serif;
+  font-weight: normal;
 }
 
 .site-footer a:hover {
-  text-decoration: underline;
+  text-decoration: none;
 }
 
 @media (max-width: 768px) {
