@@ -69,15 +69,12 @@ jobs:
           from datetime import datetime
           
           print("🔍 Reading JSON data from artifacts...")
-          
-          # Читаем JSON данные
           with open('./artifacts/moon_data_processed.json', 'r', encoding='utf-8') as f:
               data = json.load(f)
           
           print("📊 JSON data loaded successfully")
           print("🌙 Extracting moon data...")
           
-          # Извлекаем данные из JSON структуры
           moon_today_data = data['moon_today']['moon_today']
           moon_today = f"{moon_today_data['current_time']}\n🌙 Phase: {moon_today_data['moon_phase_tonight']}\nNew Moon: {moon_today_data['new_moon']}\nFirst Quarter: {moon_today_data['first_quarter']}"
           
@@ -93,14 +90,12 @@ jobs:
           
           print("📝 Creating JavaScript content...")
           
-          # Маппинг картинок для каждой карточки
           card_images = {
               "Moon today": "img/moon.avif",
               "Moon Phase Dream Dictionary": "img/Boho-Moon.avif", 
               "Daily inspiration": "img/Aesthetic-hands.avif"
           }
           
-          # Создаем JavaScript контент с реальными данными из JSON
           js_content = f'''const cards = [
             {{
               title: "Moon today",
@@ -130,12 +125,10 @@ jobs:
               titleElement.textContent = cards[currentIndex].title;
               contentElement.innerHTML = cards[currentIndex].content.replace(/\\n/g, '<br>');
               
-              // Обновляем картинку
               if (imageElement && cards[currentIndex].image) {{
                 imageElement.src = cards[currentIndex].image;
                 imageElement.alt = cards[currentIndex].title;
                 imageElement.classList.remove('hidden');
-                // Скрываем картинку при ошибке загрузки
                 imageElement.onerror = function() {{
                   this.classList.add('hidden');
                 }};
@@ -172,23 +165,12 @@ jobs:
           }});'''
           
           print("💾 Writing JavaScript file...")
-          # Записываем JavaScript файл с реальными данными
           with open('js/lunar_majesty.js', 'w', encoding='utf-8') as f:
               f.write(js_content)
           
-          print("🕒 Updating HTML timestamp...")
-          # Обновляем HTML с timestamp
-          timestamp = datetime.utcnow().strftime('%Y-%m-%d %H:%M UTC')
-          with open('index.html', 'r', encoding='utf-8') as f:
-              html_content = f.read()
-          
-          html_content = re.sub(r'<title>Lunar Majesty.*?</title>', f'<title>Lunar Majesty - Updated {timestamp}</title>', html_content)
-          
-          with open('index.html', 'w', encoding='utf-8') as f:
-              f.write(html_content)
           
           print("✅ All files updated successfully with fresh lunar data!")
-          print(f"📅 Update timestamp: {timestamp}")
+
           SCRIPT_END
           
       - name: Run update script
