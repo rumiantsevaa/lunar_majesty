@@ -60,8 +60,18 @@ jobs:
           new_cards=$(jq -n --arg mt "$moon_today" --arg md "$moon_dream" --arg insp "$inspiration" \
             '[{title:"Moon today",content:$mt},{title:"Moon Phase Dream Dictionary",content:$md},{title:"Daily inspiration",content:$insp}]')
 
-          # Replace the old cards = [...] line using sed
-          sed -i -E "s|const cards = \[.*\];|const cards = ${new_cards//\//\\/};|" "$JS_FILE"
+          escaped_cards=$(echo "$new_cards" | jq -Rs .)
+          awk -v new_cards="const cards = $new_cards;" '
+            BEGIN { replaced = 0 }
+            {
+              if ($0 ~ /const cards = \[.*\];/ && !replaced) {
+                print new_cards
+                replaced = 1
+              } else {
+                print
+              }
+            }
+          ' "$JS_FILE" > tmp.js && mv tmp.js "$JS_FILE"
     
 
 
