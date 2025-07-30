@@ -48,5 +48,21 @@ jobs:
           echo "📁 Contents of moon_data_processed.json:"
           cat ./artifacts/moon_data_processed.json
 
+      - name: Update only cards array
+        run: |
+          DATA_FILE="./data/moon_data_processed.json"
+          JS_FILE="js/lunar_majesty.js"
+
+          moon_today=$(jq -r '.moon_today.moon_today | "\(.current_time)\n🌙 Phase: \(.moon_phase_tonight)\nNew Moon: \(.new_moon)\nFirst Quarter: \(.first_quarter)"' "$DATA_FILE")
+          moon_dream=$(jq -r '.moon_dream.moon_dream.time_translated' "$DATA_FILE")
+          inspiration=$(jq -r '.inspiration.inspiration | "\(.content)\n\n\(.author)"' "$DATA_FILE")
+
+          new_cards=$(jq -n --arg mt "$moon_today" --arg md "$moon_dream" --arg insp "$inspiration" \
+            '[{title:"Moon today",content:$mt},{title:"Moon Phase Dream Dictionary",content:$md},{title:"Daily inspiration",content:$insp}]')
+
+          # Replace the old cards = [...] line using sed
+          sed -i -E "s|const cards = \[.*\];|const cards = ${new_cards//\//\\/};|" "$JS_FILE"
+    
+
 
 
