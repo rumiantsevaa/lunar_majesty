@@ -22,17 +22,11 @@ jobs:
         id: fetch
         run: |
           echo "📡 Fetching latest successful run ID..."
-          run_id=$(gh run list \
-            --workflow="parse+process.yml" \
-            --branch=main \
-            --json databaseId,status,conclusion \
-            --jq '[.[] | select(.status=="completed" and .conclusion=="success")][0].databaseId')
-          
+          run_id=$(gh run list --workflow="parse+process.yml" --branch=main --json databaseId,status,conclusion --jq '[.[] | select(.status=="completed" and .conclusion=="success")][0].databaseId')
           if [ -z "$run_id" ] || [ "$run_id" = "null" ]; then
             echo "❌ No successful run found"
             exit 1
           fi
-          
           echo "Found run_id=$run_id"
           echo "run_id=$run_id" >> "$GITHUB_OUTPUT"
         env:
@@ -60,7 +54,6 @@ jobs:
           echo "📁 Verifying artifact contents..."
           if [ -f "./artifacts/moon_data_processed.json" ]; then
             echo "✅ Artifact found"
-            echo "📄 Sample content:"
             cat ./artifacts/moon_data_processed.json | jq . | head -20
           else
             echo "❌ Artifact file not found!"
@@ -68,120 +61,112 @@ jobs:
             exit 1
           fi
           
-      - name: Extract and format data
-        id: extract_data
+      - name: Create update script
         run: |
-          DATA_FILE="./artifacts/moon_data_processed.json"
+          cat > update_content.py << 'SCRIPT_END'
+          import json
+          import re
+          from datetime import datetime
+          
+          # Читаем JSON данные
+          with open('./artifacts/moon_data_processed.json', 'r', encoding='utf-8') as f:
+              data = json.load(f)
           
           # Извлекаем данные
-          moon_today=$(jq -r '.moon_today.moon_today | "\(.current_time)\n🌙 Phase: \(.moon_phase_tonight)\nNew Moon: \(.new_moon)\nFirst Quarter: \(.first_quarter)"' "$DATA_FILE")
-          moon_dream=$(jq -r '.moon_dream.moon_dream.time_translated' "$DATA_FILE")
-          inspiration=$(jq -r '.inspiration.inspiration | "\(.content)\n\n— \(.author)"' "$DATA_FILE")
+          moon_today_data = data['moon_today']['moon_today']
+          moon_today = f"{moon_today_data['current_time']}\n🌙 Phase: {moon_today_data['moon_phase_tonight']}\nNew Moon: {moon_today_data['new_moon']}\nFirst Quarter: {moon_today_data['first_quarter']}"
           
-          # Сохраняем в файлы для безопасной передачи
-          echo "$moon_today" > /tmp/moon_today.txt
-          echo "$moon_dream" > /tmp/moon_dream.txt
-          echo "$inspiration" > /tmp/inspiration.txt
+          moon_dream = data['moon_dream']['moon_dream']['time_translated']
           
-          echo "✅ Data extracted and saved to temp files"
+          inspiration_data = data['inspiration']['inspiration']
+          inspiration = f"{inspiration_data['content']}\n\n— {inspiration_data['author']}"
           
-      - name: Create JavaScript template
-        run: |
-          cat > /tmp/js_template.js << 'EOF'
-const cards = [
-  {
-    title: "Moon today",
-    content: "MOON_TODAY_PLACEHOLDER"
-  },
-  {
-    title: "Moon Phase Dream Dictionary", 
-    content: "MOON_DREAM_PLACEHOLDER"
-  },
-  {
-    title: "Daily inspiration",
-    content: "INSPIRATION_PLACEHOLDER"
-  }
-];
-
-let currentIndex = 0;
-
-function updateCard() {
-  const titleElement = document.getElementById("card-title");
-  const contentElement = document.getElementById("card-content");
-  
-  if (titleElement && contentElement && cards[currentIndex]) {
-    titleElement.textContent = cards[currentIndex].title;
-    contentElement.innerHTML = cards[currentIndex].content.replace(/\n/g, '<br>');
-    
-    const card = document.getElementById("carousel-card");
-    card.style.opacity = '0.7';
-    setTimeout(() => {
-      card.style.opacity = '1';
-    }, 200);
-  }
-}
-
-function nextCard() {
-  currentIndex = (currentIndex + 1) % cards.length;
-  updateCard();
-}
-
-function prevCard() {
-  currentIndex = (currentIndex - 1 + cards.length) % cards.length;
-  updateCard();
-}
-
-document.addEventListener('DOMContentLoaded', function() {
-  updateCard();
-  
-  document.addEventListener('keydown', function(event) {
-    if (event.key === 'ArrowLeft') {
-      prevCard();
-    } else if (event.key === 'ArrowRight') {
-      nextCard();
-    }
-  });
-});
-EOF
+          # Создаем JavaScript контент
+          js_content = f'''const cards = [
+            {{
+              title: "Moon today",
+              content: {json.dumps(moon_today)}
+            }},
+            {{
+              title: "Moon Phase Dream Dictionary", 
+              content: {json.dumps(moon_dream)}
+            }},
+            {{
+              title: "Daily inspiration",
+              content: {json.dumps(inspiration)}
+            }}
+          ];
           
-      - name: Update JavaScript file
-        run: |
-          JS_FILE="js/lunar_majesty.js"
+          let currentIndex = 0;
           
-          echo "🔄 Updating JavaScript file..."
+          function updateCard() {{
+            const titleElement = document.getElementById("card-title");
+            const contentElement = document.getElementById("card-content");
+            
+            if (titleElement && contentElement && cards[currentIndex]) {{
+              titleElement.textContent = cards[currentIndex].title;
+              contentElement.innerHTML = cards[currentIndex].content.replace(/\\n/g, '<br>');
+              
+              const card = document.getElementById("carousel-card");
+              card.style.opacity = '0.7';
+              setTimeout(() => {{
+                card.style.opacity = '1';
+              }}, 200);
+            }}
+          }}
           
-          # Читаем данные из файлов и экранируем
-          MOON_TODAY=$(cat /tmp/moon_today.txt | sed 's/"/\\"/g' | sed ':a;N;$!ba;s/\n/\\n/g')
-          MOON_DREAM=$(cat /tmp/moon_dream.txt | sed 's/"/\\"/g' | sed ':a;N;$!ba;s/\n/\\n/g')
-          INSPIRATION=$(cat /tmp/inspiration.txt | sed 's/"/\\"/g' | sed ':a;N;$!ba;s/\n/\\n/g')
+          function nextCard() {{
+            currentIndex = (currentIndex + 1) % cards.length;
+            updateCard();
+          }}
           
-          # Копируем шаблон и заменяем плейсхолдеры
-          cp /tmp/js_template.js "$JS_FILE"
-          sed -i "s/MOON_TODAY_PLACEHOLDER/$MOON_TODAY/g" "$JS_FILE"
-          sed -i "s/MOON_DREAM_PLACEHOLDER/$MOON_DREAM/g" "$JS_FILE"
-          sed -i "s/INSPIRATION_PLACEHOLDER/$INSPIRATION/g" "$JS_FILE"
+          function prevCard() {{
+            currentIndex = (currentIndex - 1 + cards.length) % cards.length;
+            updateCard();
+          }}
           
-          echo "✅ JavaScript file updated"
+          document.addEventListener('DOMContentLoaded', function() {{
+            updateCard();
+            
+            document.addEventListener('keydown', function(event) {{
+              if (event.key === 'ArrowLeft') {{
+                prevCard();
+              }} else if (event.key === 'ArrowRight') {{
+                nextCard();
+              }}
+            }});
+          }});'''
           
-      - name: Update timestamp in HTML
-        run: |
-          TIMESTAMP=$(date -u '+%Y-%m-%d %H:%M UTC')
-          sed -i "s|<title>Lunar Majesty</title>|<title>Lunar Majesty - Updated $TIMESTAMP</title>|g" index.html
-          echo "✅ HTML timestamp updated"
+          # Записываем JavaScript файл
+          with open('js/lunar_majesty.js', 'w', encoding='utf-8') as f:
+              f.write(js_content)
+          
+          # Обновляем HTML с timestamp
+          timestamp = datetime.utcnow().strftime('%Y-%m-%d %H:%M UTC')
+          with open('index.html', 'r', encoding='utf-8') as f:
+              html_content = f.read()
+          
+          html_content = re.sub(r'<title>Lunar Majesty.*?</title>', f'<title>Lunar Majesty - Updated {timestamp}</title>', html_content)
+          
+          with open('index.html', 'w', encoding='utf-8') as f:
+              f.write(html_content)
+          
+          print("✅ Files updated successfully")
+          SCRIPT_END
+          
+      - name: Run update script
+        run: python3 update_content.py
           
       - name: Commit and push changes
         run: |
           git config --local user.email "lunar-bot@github.com"
           git config --local user.name "Lunar Majesty Bot"
-          
           if git diff --quiet; then
             echo "📄 No changes detected"
             exit 0
           fi
-          
           echo "📝 Changes detected, committing..."
           git add .
           git commit -m "🌙 Auto-update lunar data $(date +'%Y-%m-%d %H:%M UTC')"
           git push origin main
-          
           echo "✅ Changes successfully pushed to repository"
