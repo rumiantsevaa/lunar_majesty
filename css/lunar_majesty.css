@@ -209,7 +209,7 @@ body {
 
 .site-footer a {
   text-decoration: none;
-  color: #000;
+  color: #000 !important;
   font-style: italic;
   font-family: 'CardTitleFont', sans-serif;
   font-weight: normal;
