@@ -103,5 +103,5 @@ with open('js/lunar_majesty.js', 'w', encoding='utf-8') as f:
     f.write(js_content)
 
 
-print("✅ All files updated successfully with fresh lunar data!")
+print("✅ All files updated successfully with up-to-date lunar data!")
 

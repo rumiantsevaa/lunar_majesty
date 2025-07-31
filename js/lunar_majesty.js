@@ -1,12 +1,12 @@
 const cards = [
   {
     title: "Moon today",
-    content: "Jul 30, 2025\n\ud83c\udf19 Phase: Waxing Crescent\nNew Moon: Jul 24, 2025\nFirst Quarter: Aug 1, 2025",
+    content: "Jul 31, 2025\n\ud83c\udf19 Phase: Waxing Crescent\nNew Moon: Jul 24, 2025\nFirst Quarter: Aug 1, 2025",
     image: "img/moon.avif"
   },
   {
     title: "Moon Phase Dream Dictionary", 
-    content: "Dreams on this day can bring useful information, there are even prophetic information. They can come true, but not soon. These dreams may have tips that will help interpret the meaning of your life. As a rule, these tips are clear, and clearly show your situation, your tasks, goals. Pay special attention to the words that will be uttered in a dream. It is through words that day that the subconscious mind communicates with us. It is advisable to write down the words in a dream, and during the seventh lunar day to observe what you hear from others, you can visit the insight from what you heard. On this day, you can get a revelation through words from the Higher Forces in a dream, you may be the highest image, everything that you hear from them will certainly be a direct indication of action. If you see a combat rooster in a dream, be attentive to life situations. If you have a bad dream, then tell the running water about its content, then everything bad will leave.",
+    content: "Dreams on these lunar days indicate your capabilities that you have not implemented, but which is still worth realizing. In addition, you can see an indication of the problems from which you turned away in the past and forgot about them, but they need to be solved. You can see those tasks for which you have strength, do not turn away from them, try to attach these forces to solve the tasks and not spend energy in vain. In addition, the images of dreams at this time show you to change and transformation, if you dream of closed spaces, obstacles, dead ends and the like, then you have not changed yet. If, on the contrary, open spaces, fields, mountains, sea, beautiful rooms, bright, clean, then you go, in the right direction and make efforts to transformation. The main task of dreams on this day is to show your purpose. Sometimes dreams are intricate, and it is difficult to understand what is the meaning of your life task. Sometimes they clearly describe the whole picture. If you want your destiny to clarify through a dream, set a goal the day before.  Having woken up, analyze everything that you dreamed, and keep in mind that life does not always set us great tasks, maybe this is from your point of view and a small task, but its fulfillment will be of great importance for you.",
     image: "img/Boho-Moon.avif"
   },
   {
