@@ -8,7 +8,7 @@
 }
 @font-face {
   font-family: 'CardContentFont';
-  src: url('../fonts/ModernAntiqua-Regular.ttf') format('opentype');
+  src: url('../fonts/ModernAntiqua-Regular.ttf') format('truetype');
 }
 
 :root {
@@ -269,20 +269,17 @@ body {
   animation: pulse 2s infinite;
 }
 
-/* Принудительное исправление для символа @ в футере */
-.site-footer a::before,
-.site-footer a::after,
-.site-footer a *,
-.site-footer * {
-  -webkit-text-fill-color: #000 !important;
-  background: none !important;
-  -webkit-background-clip: initial !important;
-  background-clip: initial !important;
-  color: #000 !important;
-}
 
 .site-footer {
-  -webkit-text-fill-color: #000 !important;
-  background-clip: initial !important;
-  -webkit-background-clip: initial !important;
+  -webkit-text-fill-color: #000;
+  background-clip: initial;
+  -webkit-background-clip: initial;
+}
+
+
+.site-footer a:hover {
+  color: #000;
+  text-shadow:
+    0 0 8px rgba(0, 0, 0, 0.4),
+    1px 1px 2px rgba(0, 0, 0, 0.3);
 }
