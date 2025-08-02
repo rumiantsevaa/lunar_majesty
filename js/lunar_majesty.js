@@ -1,17 +1,17 @@
 const cards = [
   {
     title: "Moon today",
-    content: "Aug 1, 2025\n\ud83c\udf19 Phase: Waxing Crescent\nNew Moon: Jul 24, 2025\nFirst Quarter: Aug 1, 2025",
+    content: "Aug 2, 2025\n\ud83c\udf19 Phase: First Quarter\nNew Moon: \u2014\nFirst Quarter: Aug 1, 2025",
     image: "img/moon.avif"
   },
   {
     title: "Moon Phase Dream Dictionary", 
-    content: "Dreams of these days can show an internal conflict hidden in the human subconscious, and in its character. They can be unpleasant and even terrible, but this only indicates the problems that are hidden in your subconscious and, as a rule, are due to your karmic tasks that need to be resolved. Power the energy of the day is difficult, then dreams may not be aim The meaning of the images that appeared on this day in a dream. Just analyze the dream, and either remove useful information, or discard and forget the dream with the words: \u2018where is the night, there and dreams. Good dreams can even come true.",
+    content: "The tenth lunar day, as you know, are associated with the family and family, and sleep also reflects this principle. Therefore, in a dream, you can see relatives or spouse (spouse), children, and even ancestors of the whole kind, including spiritual ones. If in a dream you have strong kinds, or the guardian spirit-guard, be careful to what you say, or what is happening, since through this you can come to any understanding, discovery, you may have some kind of support of the genus or will be transmitted by the family, if you are ready. Dreams on these lunar days can be quite light, bright and fabulous, but they, as a rule, do not matter. An alarming dreams must be understood and either let them go with them, or work with them so that they do not overtake you in life. If you want to use the moment and work with your family or birth, before you go to bed, tune in to it, and as soon as you wake up, write everything down.",
     image: "img/Boho-Moon.avif"
   },
   {
     title: "Daily inspiration",
-    content: "Do what you have to do. Just go ahead and get it done.\n\nThough you\u2019re not looking forward to it, you\u2019ll get through it. Though it\u2019s not your ideal activity, it\u2019s not the end of the world.\n\nThink of how great you\u2019ll feel to have it behind you. Imagine the confidence and sense of satisfaction you\u2019ll gain by making it happen.\n\nThose positive outcomes can be a part of your life very soon. All it takes is for you to do what you have to do.\n\nLet go of the resentment, don\u2019t concern yourself about whether it\u2019s fair or not. Simply take one action after another and get it done.\n\nYou\u2019ve put it off long enough, the excuses have run out, and now you can finally be done with it. Get to work now and get it done.\n\n\u2014 \u2014 Ralph Marston",
+    content: "Give yourself something to look forward to. Give yourself something meaningful and compelling to work toward.\n\nLife can often be difficult and challenging. Make sure you have plenty of good reasons to pay the price, to push through the challenges.\n\nWhen there\u2019s a light at the end of the tunnel, every step brings you closer to that light. No matter how difficult each step may be, you can bear the difficulty because you know what\u2019s ahead.\n\nWhat do you see ahead for you, right now? Provide yourself with a brilliant, desirable light that becomes more reachable with every action.\n\nEquip yourself with a way to stay in touch with your purpose. Envision the specific details of a situation that you truly desire to inhabit.\n\nIdentify what will get you going and keep you going, and firmly insert it into your idea of the future. With something compelling to look forward to, you\u2019re certain to move forward.\n\n\u2014 \u2014 Ralph Marston",
     image: "img/Aesthetic-hands.avif"
   }
 ];
