@@ -15,26 +15,34 @@ on:
   schedule:
     - cron: '0 0 * * *' 
     
-# Prevent multiple simultaneous runs
+# Prevent multiple workflow runs, but allow matrix jobs within one run
 concurrency:
   group: lunar-data-processing
-  cancel-in-progress: true
-  
+  cancel-in-progress: false  # Changed to false to allow matrix to complete
+
 jobs:
   parse-and-process:
     runs-on: ubuntu-latest  # Primary worker node
-    timeout-minutes: 3
+    timeout-minutes: 15
 
-  # On fail strategy
+    # Sequential retry strategy - attempts run one after another until success
     strategy:
-      fail-fast: false
+      fail-fast: true  # Stop on first success
       matrix:
         attempt: [1, 2, 3]
     
+    # Continue only if current attempt failed and it's not the last attempt
     continue-on-error: ${{ matrix.attempt < 3 }}
+
     steps:
       - name: Attempt info
-        run: echo "🔄 Attempt ${{ matrix.attempt }}/3"
+        run: |
+          echo "🔄 Attempt ${{ matrix.attempt }}/3"
+          # Add delay for retry attempts to allow recovery time
+          if [ ${{ matrix.attempt }} -gt 1 ]; then
+            echo "⏳ Waiting before retry attempt..."
+            sleep ${{ (matrix.attempt - 1) * 300 }}  # 5 min delay per retry
+          fi
   # On fail strategy END  
         
       - name: Checkout repository
