@@ -18,7 +18,7 @@ on:
 jobs:
   parse-and-process:
     runs-on: ubuntu-latest  # Primary worker node
-    timeout-minutes: 15
+    timeout-minutes: 30
 
     steps:
       - name: Checkout repository
@@ -33,11 +33,40 @@ jobs:
         run: |
           pip install -r requirements.txt
 
-      - name: Run and save parser output
+      - name: Run parser with retry logic
         run: |
-          python parse_data.py > moon_data.json
-          echo "✅ Raw moon data collected in moon_data.json"
-          ls -la moon_data.json
+          echo "🚀 Starting data parsing with retry mechanism..."
+          
+          MAX_RETRIES=3
+          RETRY_COUNT=0
+          SUCCESS=false
+          
+          while [ $RETRY_COUNT -lt $MAX_RETRIES ] && [ "$SUCCESS" = false ]; do
+            echo "🔄 Parse attempt $((RETRY_COUNT + 1))/$MAX_RETRIES"
+            
+            if python parse_data.py > moon_data.json 2> parse_error.log; then
+              if [ -s moon_data.json ]; then
+                echo "✅ Raw moon data collected successfully"
+                ls -la moon_data.json
+                head -c 200 moon_data.json
+                SUCCESS=true
+              else
+                echo "❌ Empty JSON file created"
+                RETRY_COUNT=$((RETRY_COUNT + 1))
+                [ $RETRY_COUNT -lt $MAX_RETRIES ] && sleep $((RETRY_COUNT * 10))
+              fi
+            else
+              echo "❌ Parse attempt $((RETRY_COUNT + 1)) failed:"
+              cat parse_error.log
+              RETRY_COUNT=$((RETRY_COUNT + 1))
+              [ $RETRY_COUNT -lt $MAX_RETRIES ] && sleep $((RETRY_COUNT * 10))
+            fi
+          done
+          
+          if [ "$SUCCESS" = false ]; then
+            echo "💥 All parse attempts failed"
+            exit 1
+          fi
 
       - name: Read JSON to env var
         id: json
@@ -46,27 +75,64 @@ jobs:
           echo "MOON_JSON=$CONTENT" >> $GITHUB_ENV
           echo "✅ JSON data loaded into environment variable"
 
-      - name: Launch bot with Selenium
+      - name: Launch bot with retry logic
         env:
           PA_USERNAME: ${{ secrets.PA_USERNAME }}
           PA_PASSWORD: ${{ secrets.PA_PASSWORD }}
           MOON_JSON: ${{ env.MOON_JSON }}
         run: |
-          echo "🚀 Launching a selenium controller bot for data processing in the PA node enviroment..."
-          python bot_launcher.py
+          echo "🚀 Starting PythonAnywhere bot with retry mechanism..."
+          
+          MAX_RETRIES=3
+          RETRY_COUNT=0
+          SUCCESS=false
+          
+          while [ $RETRY_COUNT -lt $MAX_RETRIES ] && [ "$SUCCESS" = false ]; do
+            echo "🔄 Bot attempt $((RETRY_COUNT + 1))/$MAX_RETRIES"
+            
+            if python bot_launcher.py 2> bot_error.log; then
+              if [ -f "moon_data_processed.json" ] && [ -s "moon_data_processed.json" ]; then
+                echo "✅ Bot processing completed successfully"
+                SUCCESS=true
+              else
+                echo "❌ Processed file not created or empty"
+                RETRY_COUNT=$((RETRY_COUNT + 1))
+                [ $RETRY_COUNT -lt $MAX_RETRIES ] && sleep $((RETRY_COUNT * 15))
+              fi
+            else
+              echo "❌ Bot attempt $((RETRY_COUNT + 1)) failed:"
+              cat bot_error.log
+              RETRY_COUNT=$((RETRY_COUNT + 1))
+              [ $RETRY_COUNT -lt $MAX_RETRIES ] && sleep $((RETRY_COUNT * 15))
+            fi
+          done
+          
+          if [ "$SUCCESS" = false ]; then
+            echo "💥 All bot attempts failed"
+            exit 1
+          fi
 
       - name: Verify processed file
         run: |
           if [ -f "moon_data_processed.json" ]; then
             echo "✅ The processed file was created successfully!"
-            echo "📊 File size: $(wc -c < moon_data_processed.json) byte"
+            echo "📊 File size: $(wc -c < moon_data_processed.json) bytes"
             echo "📝 First 200 characters:"
             head -c 200 moon_data_processed.json
             echo ""
             echo "..."
+            
+            # Verify JSON is valid
+            if python3 -c "import json; json.load(open('moon_data_processed.json'))" 2>/dev/null; then
+              echo "✅ JSON file is valid"
+            else
+              echo "❌ JSON file is invalid"
+              exit 1
+            fi
           else
             echo "❌ Processed file not found"
             ls -la *.json || echo "No JSON files"
+            exit 1
           fi
 
       - name: Upload processed result
@@ -89,4 +155,4 @@ jobs:
           else
             echo "⚠️ The processed file was not created."
           fi
-          echo "✅ Workflow completed. Waiting for the worker environment to complete post steps."
+          echo "✅ Workflow completed with retry mechanisms active. Waiting for the worker environment to complete post steps."
