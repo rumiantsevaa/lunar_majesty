@@ -18,9 +18,20 @@ on:
 jobs:
   parse-and-process:
     runs-on: ubuntu-latest  # Primary worker node
-    timeout-minutes: 15
+    timeout-minutes: 3
 
+  # On fail strategy
+    strategy:
+      fail-fast: false
+      matrix:
+        attempt: [1, 2, 3]
+    
+    continue-on-error: ${{ matrix.attempt < 3 }}
     steps:
+      - name: Attempt info
+        run: echo "🔄 Attempt ${{ matrix.attempt }}/3"
+  # On fail strategy END  
+        
       - name: Checkout repository
         uses: actions/checkout@v4
 
