@@ -15,10 +15,10 @@ on:
   schedule:
     - cron: '0 0 * * *' 
     
-# Prevent multiple workflow runs, but allow matrix jobs within one run
+# Prevent multiple workflow runs
 concurrency:
   group: lunar-data-processing
-  cancel-in-progress: false  # Changed to false to allow matrix to complete
+  cancel-in-progress: true
 
 jobs:
   parse-and-process:
@@ -27,7 +27,8 @@ jobs:
 
     # Sequential retry strategy - attempts run one after another until success
     strategy:
-      fail-fast: true  # Stop on first success
+      fail-fast: false
+      max-parallel: 1  # Force sequential execution
       matrix:
         attempt: [1, 2, 3]
     
@@ -35,14 +36,15 @@ jobs:
     continue-on-error: ${{ matrix.attempt < 3 }}
 
     steps:
-      - name: Attempt info
+      - name: Attempt info and delay
         run: |
           echo "🔄 Attempt ${{ matrix.attempt }}/3"
-          # Add delay for retry attempts to allow recovery time
-          if [ ${{ matrix.attempt }} -gt 1 ]; then
-            echo "⏳ Waiting before retry attempt..."
-            sleep ${{ (matrix.attempt - 1) * 300 }}  # 5 min delay per retry
-          fi
+          # Add delay for retry attempts using case statement
+          case ${{ matrix.attempt }} in
+            2) echo "⏳ Waiting 5 minutes before retry..."; sleep 300 ;;
+            3) echo "⏳ Waiting 10 minutes before final attempt..."; sleep 600 ;;
+            *) echo "🚀 Starting first attempt..." ;;
+          esac
         
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -96,7 +98,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: moon-data-processed-${{ matrix.attempt }}
+          name: moon-data-processed
           path: |
             moon_data.json
             moon_data_processed.json
