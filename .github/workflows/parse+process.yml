@@ -43,7 +43,6 @@ jobs:
             echo "⏳ Waiting before retry attempt..."
             sleep ${{ (matrix.attempt - 1) * 300 }}  # 5 min delay per retry
           fi
-  # On fail strategy END  
         
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -83,7 +82,7 @@ jobs:
         run: |
           if [ -f "moon_data_processed.json" ]; then
             echo "✅ The processed file was created successfully!"
-            echo "📊 File size: $(wc -c < moon_data_processed.json) byte"
+            echo "📊 File size: $(wc -c < moon_data_processed.json) bytes"
             echo "📝 First 200 characters:"
             head -c 200 moon_data_processed.json
             echo ""
@@ -97,7 +96,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: moon-data-processed
+          name: moon-data-processed-${{ matrix.attempt }}
           path: |
             moon_data.json
             moon_data_processed.json
@@ -106,11 +105,11 @@ jobs:
       - name: Show final status
         if: always()
         run: |
-          echo "📋 Final status:"
+          echo "📋 Final status for attempt ${{ matrix.attempt }}:"
           ls -la *.json || echo "No JSON files"
           if [ -f "moon_data_processed.json" ]; then
             echo "✅ Processing completed successfully!"
           else
             echo "⚠️ The processed file was not created."
           fi
-          echo "✅ Workflow completed. Waiting for the worker environment to complete post steps."
+          echo "✅ Workflow attempt ${{ matrix.attempt }} completed."
