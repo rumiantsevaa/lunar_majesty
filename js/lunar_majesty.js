@@ -20,7 +20,7 @@ const cardConfig = {
     image: "img/Aesthetic-hands.avif",
     dataPath: ["inspiration", "inspiration"],
     formatter: (data) => {
-      return `${data.content}\n\n— ${data.author}`;
+      return `${data.content}\n\n${data.author}`;
     }
   }
 };
