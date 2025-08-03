@@ -53,7 +53,7 @@ jobs:
         run: |
           echo "📁 Verifying artifact contents..."
           if [ -f "./artifacts/moon_data_processed.json" ]; then
-            echo "✅ Artifact found"
+            echo "✅ Artifact found and ready for site"
             cat ./artifacts/moon_data_processed.json | jq . | head -20
           else
             echo "❌ Artifact file not found!"
@@ -61,19 +61,16 @@ jobs:
             exit 1
           fi
           
-      - name: Run existing update script
-        run: python3 update_content.py
-          
-      - name: Commit and push changes
+      - name: Commit and push JSON data
         run: |
           git config --local user.email "lunar-bot@github.com"
           git config --local user.name "Lunar Majesty Bot"
           if git diff --quiet; then
-            echo "📄 No changes detected"
+            echo "📄 No changes detected in JSON data"
             exit 0
           fi
-          echo "📝 Changes detected, committing..."
-          git add .
-          git commit -m "🌙 Auto-update lunar data $(date +'%Y-%m-%d %H:%M UTC')"
+          echo "📝 JSON data updated, committing..."
+          git add artifacts/moon_data_processed.json
+          git commit -m "🌙 Auto-update lunar JSON data $(date +'%Y-%m-%d %H:%M UTC')"
           git push origin main
-          echo "✅ Changes successfully pushed to repository"
+          echo "✅ Updated JSON data successfully pushed to repository"
