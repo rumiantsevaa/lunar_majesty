@@ -25,15 +25,12 @@ jobs:
     runs-on: ubuntu-latest  # Primary worker node
     timeout-minutes: 15
 
-    # Sequential retry strategy - attempts run one after another until success
+    # Sequential retry strategy - stop all on first success
     strategy:
-      fail-fast: false
+      fail-fast: true  # This will stop remaining jobs on first success
       max-parallel: 1  # Force sequential execution
       matrix:
         attempt: [1, 2, 3]
-    
-    # Continue only if current attempt failed and it's not the last attempt
-    continue-on-error: ${{ matrix.attempt < 3 }}
 
     steps:
       - name: Attempt info and delay
@@ -92,10 +89,11 @@ jobs:
           else
             echo "❌ Processed file not found"
             ls -la *.json || echo "No JSON files"
+            exit 1  # Force failure to trigger next attempt
           fi
 
       - name: Upload processed result
-        if: always()
+        if: success()  # Only upload on success
         uses: actions/upload-artifact@v4
         with:
           name: moon-data-processed
