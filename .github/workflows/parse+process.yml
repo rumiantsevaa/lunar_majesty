@@ -15,34 +15,12 @@ on:
   schedule:
     - cron: '0 0 * * *' 
     
-# Prevent multiple workflow runs
-concurrency:
-  group: lunar-data-processing
-  cancel-in-progress: true
-
 jobs:
   parse-and-process:
     runs-on: ubuntu-latest  # Primary worker node
     timeout-minutes: 15
 
-    # Sequential retry strategy - stop all on first success
-    strategy:
-      fail-fast: true  # This will stop remaining jobs on first success
-      max-parallel: 1  # Force sequential execution
-      matrix:
-        attempt: [1, 2, 3]
-
     steps:
-      - name: Attempt info and delay
-        run: |
-          echo "🔄 Attempt ${{ matrix.attempt }}/3"
-          # Add delay for retry attempts using case statement
-          case ${{ matrix.attempt }} in
-            2) echo "⏳ Waiting 5 minutes before retry..."; sleep 300 ;;
-            3) echo "⏳ Waiting 10 minutes before final attempt..."; sleep 600 ;;
-            *) echo "🚀 Starting first attempt..." ;;
-          esac
-        
       - name: Checkout repository
         uses: actions/checkout@v4
 
@@ -81,7 +59,7 @@ jobs:
         run: |
           if [ -f "moon_data_processed.json" ]; then
             echo "✅ The processed file was created successfully!"
-            echo "📊 File size: $(wc -c < moon_data_processed.json) bytes"
+            echo "📊 File size: $(wc -c < moon_data_processed.json) byte"
             echo "📝 First 200 characters:"
             head -c 200 moon_data_processed.json
             echo ""
@@ -89,11 +67,10 @@ jobs:
           else
             echo "❌ Processed file not found"
             ls -la *.json || echo "No JSON files"
-            exit 1  # Force failure to trigger next attempt
           fi
 
       - name: Upload processed result
-        if: success()  # Only upload on success
+        if: always()
         uses: actions/upload-artifact@v4
         with:
           name: moon-data-processed
@@ -105,11 +82,11 @@ jobs:
       - name: Show final status
         if: always()
         run: |
-          echo "📋 Final status for attempt ${{ matrix.attempt }}:"
+          echo "📋 Final status:"
           ls -la *.json || echo "No JSON files"
           if [ -f "moon_data_processed.json" ]; then
             echo "✅ Processing completed successfully!"
           else
             echo "⚠️ The processed file was not created."
           fi
-          echo "✅ Workflow attempt ${{ matrix.attempt }} completed."
+          echo "✅ Workflow completed. Waiting for the worker environment to complete post steps."
