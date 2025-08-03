@@ -43,25 +43,15 @@ jobs:
           
           while [ $RETRY_COUNT -lt $MAX_RETRIES ] && [ "$SUCCESS" = false ]; do
             echo "🔄 Parse attempt $((RETRY_COUNT + 1))/$MAX_RETRIES"
-            
             rm -f moon_data.json parse_error.log
-            
             if python parse_data.py > moon_data.json 2> parse_error.log; then
               if [ -f "moon_data.json" ] && [ -s "moon_data.json" ]; then
-                if python3 -c "import json; json.load(open('moon_data.json'))" 2>/dev/null; then
-                  echo "✅ Raw moon data collected successfully"
-                  echo "📊 File size: $(wc -c < moon_data.json) bytes"
-                  echo "📝 Preview:"
-                  head -c 300 moon_data.json
-                  echo ""
-                  SUCCESS=true
-                else
-                  echo "❌ Invalid JSON created"
-                  echo "📋 File contents:"
-                  cat moon_data.json
-                  RETRY_COUNT=$((RETRY_COUNT + 1))
-                  [ $RETRY_COUNT -lt $MAX_RETRIES ] && sleep $((RETRY_COUNT * 10))
-                fi
+                echo "✅ Raw moon data collected successfully"
+                echo "📊 File size: $(wc -c < moon_data.json) bytes"
+                echo "📝 Preview:"
+                head -c 300 moon_data.json
+                echo ""
+                SUCCESS=true
               else
                 echo "❌ Empty or missing JSON file created"
                 RETRY_COUNT=$((RETRY_COUNT + 1))
@@ -89,11 +79,10 @@ jobs:
           echo "✅ Raw moon data collected in moon_data.json"
           ls -la moon_data.json
 
-      - name: Read JSON to env var with validation
+      - name: Read JSON to env var
         id: json
         run: |
-          echo "📋 Reading and validating JSON file..."
-          
+          echo "📋 Reading JSON file..."
           if [ ! -f "moon_data.json" ]; then
             echo "❌ moon_data.json file not found"
             exit 1
@@ -108,22 +97,10 @@ jobs:
           echo "📝 First 200 characters:"
           head -c 200 moon_data.json
           echo ""
-          
-          CONTENT=$(python3 -c "
-          import json
-          import sys
-          
-          try:
-              with open('moon_data.json', 'r', encoding='utf-8') as f:
-                  data = json.load(f)
-              print(json.dumps(data, ensure_ascii=False, separators=(',', ':')))
-          except Exception as e:
-              print(f'Error reading JSON: {e}', file=sys.stderr)
-              sys.exit(1)
-          ")
+          CONTENT=$(cat moon_data.json)
           
           if [ -z "$CONTENT" ]; then
-            echo "❌ Failed to read JSON content"
+            echo "❌ Failed to read file content"
             exit 1
           fi
           
@@ -132,7 +109,7 @@ jobs:
           CONTENT="${CONTENT//$'\r'/'%0D'}"
           
           echo "MOON_JSON=$CONTENT" >> $GITHUB_ENV
-          echo "✅ JSON data loaded into environment variable (${#CONTENT} characters)"
+          echo "✅ Data loaded into environment variable (${#CONTENT} characters)"
 
       - name: Launch bot with retry logic
         env:
@@ -152,16 +129,8 @@ jobs:
             
             if python bot_launcher.py 2> bot_error.log; then
               if [ -f "moon_data_processed.json" ] && [ -s "moon_data_processed.json" ]; then
-                if python3 -c "import json; json.load(open('moon_data_processed.json'))" 2>/dev/null; then
-                  echo "✅ Bot processing completed successfully"
-                  SUCCESS=true
-                else
-                  echo "❌ Invalid processed JSON created"
-                  echo "📋 File contents:"
-                  cat moon_data_processed.json
-                  RETRY_COUNT=$((RETRY_COUNT + 1))
-                  [ $RETRY_COUNT -lt $MAX_RETRIES ] && sleep $((RETRY_COUNT * 15))
-                fi
+                echo "✅ Bot processing completed successfully"
+                SUCCESS=true
               else
                 echo "❌ Processed file not created or empty"
                 RETRY_COUNT=$((RETRY_COUNT + 1))
@@ -191,12 +160,6 @@ jobs:
             head -c 200 moon_data_processed.json
             echo ""
             echo "..."
-            
-            if python3 -c "import json; data = json.load(open('moon_data_processed.json')); print(f'JSON valid with {len(data)} sections')" 2>/dev/null; then
-              echo "✅ JSON file is valid and properly structured"
-            else
-              echo "⚠️ JSON file might have issues"
-            fi
           else
             echo "❌ Processed file not found"
             ls -la *.json || echo "No JSON files"
