@@ -15,6 +15,11 @@ on:
   schedule:
     - cron: '0 0 * * *' 
     
+# Prevent multiple simultaneous runs
+concurrency:
+  group: lunar-data-processing
+  cancel-in-progress: true
+  
 jobs:
   parse-and-process:
     runs-on: ubuntu-latest  # Primary worker node
