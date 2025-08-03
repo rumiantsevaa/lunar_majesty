@@ -71,6 +71,9 @@ jobs:
           fi
           echo "📝 JSON data updated, committing..."
           git add artifacts/moon_data_processed.json
-          git commit -m "🌙 Auto-update lunar JSON data $(date +'%Y-%m-%d %H:%M UTC')"
+          git commit -m "🌙 Auto-update lunar JSON data $(date +'%Y-%m-%d %H:%M UTC')" || {
+            echo "⚠️ Nothing to commit, treating as success"
+            exit 0
+          }
           git push origin main
           echo "✅ Updated JSON data successfully pushed to repository"
