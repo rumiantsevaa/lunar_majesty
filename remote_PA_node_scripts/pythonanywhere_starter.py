@@ -13,25 +13,25 @@ def process_moon_data():
             moon_today[key] = moon_today[key].split(' at ')[0]
 
     moon_dream = data['moon_dream']['moon_dream']
-    # Leave only weekday and time, delete the rest
-    keys_to_keep = ['weekday', 'time']
+    # Leave only weekday and dream_interpretation, delete the rest
+    keys_to_keep = ['weekday', 'dream_interpretation']
     moon_dream_processed = {k: moon_dream[k] for k in keys_to_keep if k in moon_dream}
 
-    if 'time' in moon_dream_processed:
-        text = moon_dream_processed['time']
+    if 'dream_interpretation' in moon_dream_processed:
+        text = moon_dream_processed['dream_interpretation']
         # Find the last occurrence of "день" and trim everything before it
         match = re.search(r'день', text)
         if match:
             start_pos = match.end()
-            moon_dream_processed['time'] = text[start_pos:].strip()
+            moon_dream_processed['dream_interpretation'] = text[start_pos:].strip()
 
         translator = Translator()
         try:
-            translated = translator.translate(moon_dream_processed['time'], dest='en').text
-            moon_dream_processed['time_translated'] = translated
+            translated = translator.translate(moon_dream_processed['dream_interpretation'], dest='en').text
+            moon_dream_processed['dream_interpretation_translated'] = translated
         except Exception as e:
             print(f"Translation error: {e}")
-            moon_dream_processed['time_translated'] = "Translation failed"
+            moon_dream_processed['dream_interpretation_translated'] = "Translation failed"
 
     inspiration = data['inspiration']['inspiration']
     inspiration_processed = {
@@ -48,7 +48,7 @@ def process_moon_data():
     with open('moon_data_processed.json', 'w', encoding='utf-8') as file:
         json.dump(result, file, ensure_ascii=False, indent=2)
 
-    print("Processing complete. Result saved in processed_moon_data.json")
+    print("Processing complete. Result saved in moon_data_processed.json")
 
 if __name__ == "__main__":
     process_moon_data()

@@ -34,24 +34,23 @@ def moon_today_description(driver):
         }
     }
 
+
 def moon_dream_dictionary(driver):
     """Extracts moon-related dream interpretation data from rivendel.ru
     Returns structured dream analysis including:
     - Weekday
     - Moon day and phase
-    - Time and zodiac sign
     - Dream interpretation
     """
     driver.get("https://rivendel.ru/dream_lenta.php")
     soup = BeautifulSoup(driver.page_source, "html.parser")
-    
+
     green_img = soup.find("img", {"src": "greensn.gif"})
     if not green_img:
         return {"moon_dream": {"error": "Can't find the checkbox"}}
 
     target_tr = green_img.find_parent("tr")
     current_tr = target_tr
-    result = []
 
     current_tr = current_tr.find_next_sibling("tr")
     tds = current_tr.find_all("td")
@@ -79,9 +78,7 @@ def moon_dream_dictionary(driver):
             "weekday": weekday,
             "moon_day": moon_day_phase[0] if len(moon_day_phase) > 0 else "",
             "moon_phase": moon_day_phase[1] if len(moon_day_phase) > 1 else "",
-            "time": time_zodiac[0] if len(time_zodiac) > 0 else "",
-            "zodiac_sign": time_zodiac[1] if len(time_zodiac) > 1 else "",
-            "interpretation": interpretation
+            "dream_interpretation": time_zodiac[0] if len(time_zodiac) > 0 else ""
         }
     }
 

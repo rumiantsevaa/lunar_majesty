@@ -12,7 +12,8 @@ print("🌙 Extracting moon data...")
 moon_today_data = data['moon_today']['moon_today']
 moon_today = f"{moon_today_data['current_time']}\n🌙 Phase: {moon_today_data['moon_phase_tonight']}\nNew Moon: {moon_today_data['new_moon']}\nFirst Quarter: {moon_today_data['first_quarter']}"
 
-moon_dream = data['moon_dream']['moon_dream']['time_translated']
+# var renamed to dream_interpretation_translated
+moon_dream = data['moon_dream']['moon_dream']['dream_interpretation_translated']
 
 inspiration_data = data['inspiration']['inspiration']
 inspiration = f"{inspiration_data['content']}\n\n— {inspiration_data['author']}"
@@ -102,6 +103,4 @@ print("💾 Writing JavaScript file...")
 with open('js/lunar_majesty.js', 'w', encoding='utf-8') as f:
     f.write(js_content)
 
-
 print("✅ All files updated successfully with up-to-date lunar data!")
-
