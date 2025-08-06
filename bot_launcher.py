@@ -6,6 +6,7 @@ import undetected_chromedriver as uc
 from selenium.webdriver.common.by import By
 from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.common.action_chains import ActionChains
+from selenium.webdriver.chrome.service import Service
 
 USERNAME = os.getenv("PA_USERNAME")
 PASSWORD = os.getenv("PA_PASSWORD")
@@ -83,7 +84,11 @@ def run():
     options.add_argument("--disable-dev-shm-usage")
     options.add_argument("--window-size=1920,1080")
     print("🌐 Starting Chrome...")
-    driver = uc.Chrome(options=options)
+    
+    # Use explicit path to ChromeDriver
+    chromedriver_path = "./matching_chrome_driver/chromedriver"
+    service = Service(executable_path=chromedriver_path)
+    driver = uc.Chrome(service=service, options=options)
     
     try:
         # 1. Login to PythonAnywhere
