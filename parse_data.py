@@ -154,7 +154,7 @@ if __name__ == "__main__":
         driver = uc.Chrome(
             options=options,
             driver_executable_path=chromedriver_path,  # Принудительно используем наш драйвер
-            version_main=None,  # Отключаем автоматическое определение версии
+            version_main=139, 
         )
     except Exception as e:
         print(f"Failed to create driver with undetected_chromedriver: {e}", file=sys.stderr)
