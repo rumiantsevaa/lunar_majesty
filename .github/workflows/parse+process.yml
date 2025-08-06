@@ -47,7 +47,7 @@ jobs:
           chmod +x ./matching_chrome_driver/chromedriver
           echo "$PWD/matching_chrome_driver" >> $GITHUB_PATH
           ./matching_chrome_driver/chromedriver --version
-          echo "✅ ChromeDriver configured and version verified""
+          echo "✅ ChromeDriver configured and version verified"
 
       - name: Run and save parser output
         run: |
