@@ -118,6 +118,12 @@ jobs:
           CHROMEDRIVER_PATH: "./matching_chrome_driver/chromedriver"
         run: |
           echo "🚀 Starting parser with ChromeDriver: $CHROMEDRIVER_PATH"
+
+          echo "🧨 Killing old Chrome processes"
+          pkill -9 -f chrome || true
+          pkill -9 -f google-chrome || true
+          sleep 2
+          
           python parse_data.py > moon_data.json
           echo "✅ Raw moon data collected in moon_data.json"
           ls -la moon_data.json
@@ -227,9 +233,10 @@ jobs:
         run: |
           echo "🚀 Launching a selenium controller bot..."
           echo "📋 Using ChromeDriver: $(which chromedriver)"
-          
-          pkill -f chrome || true
-          pkill -f google-chrome || true
+
+          echo "🧨 Killing old Chrome processes"
+          pkill -9 -f chrome || true
+          pkill -9 -f google-chrome || true
           sleep 2
           
           python bot_launcher.py
