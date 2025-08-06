@@ -34,8 +34,14 @@ RUN wget -q -O - https://dl.google.com/linux/linux_signing_key.pub | apt-key add
     apt-get install -y google-chrome-stable && \
     rm -rf /var/lib/apt/lists/*
 
-# Проверить версию Chrome
-RUN google-chrome --version
+# Установить ChromeDriver 139
+RUN wget -O /tmp/chromedriver.zip https://chromedriver.storage.googleapis.com/139.0.5414.74/chromedriver_linux64.zip && \
+    unzip /tmp/chromedriver.zip -d /usr/local/bin/ && \
+    chmod +x /usr/local/bin/chromedriver && \
+    rm /tmp/chromedriver.zip
+
+# Проверить версии Chrome и ChromeDriver
+RUN google-chrome --version && chromedriver --version
 
 # Создать пользователя для безопасности
 RUN useradd -m -s /bin/bash selenium && \
@@ -45,7 +51,7 @@ RUN useradd -m -s /bin/bash selenium && \
 # Установить рабочую директорию
 WORKDIR /app
 
-# Копировать requirements и установить Python-зависимости
+# Копировать requirements и установить Python-зависимости (от root)
 COPY requirements.txt /app/requirements.txt
 RUN pip install --no-cache-dir -r requirements.txt
 
@@ -56,10 +62,11 @@ RUN chown -R selenium:selenium /app
 # Переключиться на пользователя selenium
 USER selenium
 
-# Настроить переменные окружения для Chrome
+# Настроить переменные окружения для Chrome и Python
 ENV DISPLAY=:99
 ENV CHROME_BIN=/usr/bin/google-chrome
 ENV CHROME_PATH=/usr/bin/google-chrome
+ENV PATH="/usr/local/bin:$PATH"
 
 # По умолчанию запускать bash
 ENTRYPOINT ["/bin/bash"]
