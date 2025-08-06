@@ -130,13 +130,9 @@ def day_inspiration(driver):
         return {"inspiration": {"error": "Can't get the requested data"}}
 
 if __name__ == "__main__":
-    # Очищаем кеш перед началом
     clear_uc_cache()
-    
-    # Используем локальный ChromeDriver принудительно
     chromedriver_path = os.path.abspath("./matching_chrome_driver/chromedriver")
-    
-    # Проверим существование файла
+
     if not os.path.exists(chromedriver_path):
         print(f"Error: ChromeDriver not found at {chromedriver_path}", file=sys.stderr)
         sys.exit(1)
@@ -148,22 +144,32 @@ if __name__ == "__main__":
     options.add_argument('--disable-gpu')
     
     print(f"Using ChromeDriver at: {chromedriver_path}", file=sys.stderr)
+    os.system("pkill -9 -f chrome || true")
+    os.system("pkill -9 -f google-chrome || true")
     
     try:
-        # КЛЮЧЕВОЙ МОМЕНТ: принудительно используем наш ChromeDriver
         driver = uc.Chrome(
             options=options,
-            driver_executable_path=chromedriver_path,  # Принудительно используем наш драйвер
+            driver_executable_path=chromedriver_path,
             version_main=139, 
         )
-    except Exception as e:
-        print(f"Failed to create driver with undetected_chromedriver: {e}", file=sys.stderr)
-        print("Trying fallback method with regular Selenium...", file=sys.stderr)
-        # Fallback к обычному Selenium
-        from selenium import webdriver
-        service = Service(executable_path=chromedriver_path)
-        driver = webdriver.Chrome(service=service, options=options)
+        print("✅ undetected_chromedriver started", file=sys.stderr)
+        print("📡 Connected browser version:", driver.capabilities.get("browserVersion", "unknown"), file=sys.stderr)
     
+    except Exception as e:
+        print(f"❌ Failed to start undetected_chromedriver: {e}", file=sys.stderr)
+        print("🔄 Trying fallback with regular Selenium...", file=sys.stderr)
+        
+        try:
+            from selenium import webdriver
+            service = Service(executable_path=chromedriver_path)
+            driver = webdriver.Chrome(service=service, options=options)
+            print("✅ Fallback driver started", file=sys.stderr)
+            print("📡 Fallback browser version:", driver.capabilities.get("browserVersion", "unknown"), file=sys.stderr)
+        except Exception as e2:
+            print(f"❌ Regular Selenium also failed: {e2}", file=sys.stderr)
+            sys.exit(1)
+
     try:
         # Execute all scraping functions and combine results
         data = {
