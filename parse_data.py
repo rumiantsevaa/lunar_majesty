@@ -6,6 +6,22 @@ from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from bs4 import BeautifulSoup
 
+import os
+
+# Add to PATH
+chromedriver_path = None
+if os.path.exists("matching_chrome_driver/chromedriver"):
+    chromedriver_path = os.path.abspath("matching_chrome_driver/chromedriver")
+
+options = uc.ChromeOptions()
+options.headless = True
+
+# If the path is set explicitly, use it, otherwise search in PATH
+if chromedriver_path:
+    driver = uc.Chrome(driver_executable_path=chromedriver_path, options=options)
+else:
+    driver = uc.Chrome(options=options)  # PATH
+
 def moon_today_description(driver):
     """Scrapes current moon phase data from timeanddate.com
     Returns structured data including:
