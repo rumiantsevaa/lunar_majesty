@@ -1,103 +1,105 @@
-name: Moon Data Parser and Processor (Dockerized)
+name: Moon Data Parser and Processor
+
+# CI/CD workflow for daily updates of https://rumiantsevaa.github.io/lunar_majesty/ data on GitHub Pages 
+
+# GitHub Actions runner (works as master node) scrapes raw moon data - parse_data.py
+# (Acts as GA worker that controls the how GA enviroment gets the data, how it's parsed and saves it in GA workflow artifacts.) 
+
+# Raw data is sent to PythonAnywhere (PA) node that acts as enviroment for data processing - bot_launcher.py 
+# (Acts as GA worker that controls the how PA enviroment gets the data, how it's processed and saves it in GA workflow artifacts.) 
+
+# Future implementation: GA worker commits processed data to repo (triggering Pages rebuild daily)
+
+# This workflow performs up to 3 sequential attempts of parsing and processing moon data.
+# Each attempt is a separate job (attempt1, attempt2, attempt3) linked via `needs` and `if`.
+# Logic: attempt2 runs only if attempt1 fails (result == 'failure'), attempt3 runs only if attempt2 fails.
+# The success/failure of an attempt is determined by the "Verify processed file" step:
+#   - If moon_data_processed.json is found → the job exits successfully (exit code 0).
+#   - If the file is missing → the job exits with an error (exit 1), triggering the next attempt.
+# This ensures that if the first or second attempt succeeds, subsequent attempts are skipped
+# and the workflow finishes early.
 
 on:
-  workflow_dispatch:
+  workflow_dispatch: 
   schedule:
-    - cron: '0 0 * * *'
-    - cron: '0 12 * * *'
-    - cron: '0 15 * * *'
-
+    - cron: '0 0 * * *' 
+    - cron: '0 12 * * *'  
+    - cron: '0 15 * * *' 
+    
 jobs:
-  parse-and-process:
-    runs-on: ubuntu-latest
+  parse-and-process: 
+    runs-on: ubuntu-latest  # Primary worker node
     timeout-minutes: 15
-
-    container:
-      image: docker:latest
-      options: --privileged
-
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.10"
 
-      - name: Build parser container
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Build Docker image for selenium scripts
         run: |
-          echo "🔧 Building parser container..."
-          docker build -t moon-parser -f Dockerfile.parse_data .
-          echo "✅ Container built: moon-parser"
-
-      - name: Run parser and save output
+          docker build -t lunar-selenium .
+          
+      - name: Run and save parser output (Docker)
         run: |
-          echo "🚀 Running parser..."
-          mkdir -p artifacts
-          docker run --rm \
-            -v $(pwd)/artifacts:/app/output \
-            moon-parser > artifacts/moon_data.json
+          docker run --rm --memory=2g --cpus=1 -v ${{ github.workspace }}:/app lunar-selenium python parse_data.py > moon_data.json
+          echo "✅ Raw moon data collected in moon_data.json"
+          ls -la moon_data.json
 
-          echo "📦 Checking file:"
-          ls -la artifacts/moon_data.json || echo "❌ File not created"
-
-      - name: Prepare JSON for bot
-        id: prepare-json
+      - name: Read JSON to env var
+        id: json
         run: |
-          CONTENT=$(cat artifacts/moon_data.json | tr -d '\n' | tr -d '\r')
-          echo "content=${CONTENT}" >> $GITHUB_OUTPUT
-          echo "MOON_JSON=${CONTENT}" >> $GITHUB_ENV
-          echo "✅ JSON saved to environment variable"
+          CONTENT=$(cat moon_data.json | python3 -c 'import json,sys; print(json.dumps(json.load(sys.stdin)))')
+          echo "MOON_JSON=$CONTENT" >> $GITHUB_ENV
+          echo "✅ JSON data loaded into environment variable"
 
-      - name: Build bot container
-        run: |
-          echo "🔧 Building bot container..."
-          docker build -t moon-bot -f Dockerfile.bot_launcher .
-          echo "✅ Container built: moon-bot"
-
-      - name: Run bot to process data
+      - name: Launch bot with Selenium (Docker)
         env:
           PA_USERNAME: ${{ secrets.PA_USERNAME }}
           PA_PASSWORD: ${{ secrets.PA_PASSWORD }}
-          MOON_JSON: ${{ steps.prepare-json.outputs.content }}
+          MOON_JSON: ${{ env.MOON_JSON }}
         run: |
-          echo "🚀 Running bot to process data..."
-          timeout 150s docker run --rm \
-            -e PA_USERNAME=$PA_USERNAME \
-            -e PA_PASSWORD=$PA_PASSWORD \
-            -e MOON_JSON="$MOON_JSON" \
-            -v $(pwd)/artifacts:/app/output \
-            moon-bot || echo "❌ Bot failed or timed out"
+          echo "🚀 Launching a selenium controller bot for data processing in the PA node environment..."
+          docker run --rm --memory=2g --cpus=1 -e PA_USERNAME -e PA_PASSWORD -e MOON_JSON -v ${{ github.workspace }}:/app lunar-selenium python bot_launcher.py
 
       - name: Verify processed file
         run: |
-          echo "📦 Checking for processed file..."
-          if [ -f "artifacts/moon_data_processed.json" ]; then
-            echo "✅ File created successfully!"
-            echo "📊 Size: $(wc -c < artifacts/moon_data_processed.json) bytes"
-            echo "📝 Preview (200 chars):"
-            head -c 200 artifacts/moon_data_processed.json
+          if [ -f "moon_data_processed.json" ]; then
+            echo "✅ The processed file was created successfully!"
+            echo "📊 File size: $(wc -c < moon_data_processed.json) byte"
+            echo "📝 First 200 characters:"
+            head -c 200 moon_data_processed.json
+            echo ""
+            echo "..."
           else
             echo "❌ Processed file not found"
-            ls -la artifacts/*.json || echo "No files found"
+            ls -la *.json || echo "No JSON files"
             exit 1
           fi
 
-      - name: Upload artifacts
+      - name: Upload processed result
         uses: actions/upload-artifact@v4
         with:
           name: moon-data-processed
           path: |
-            artifacts/moon_data.json
-            artifacts/moon_data_processed.json
+            moon_data.json
+            moon_data_processed.json
           retention-days: 30
 
       - name: Show final status
         if: always()
         run: |
           echo "📋 Final status:"
-          ls -la artifacts/*.json || echo "❌ JSON files not found"
-          if [ -f "artifacts/moon_data_processed.json" ]; then
-            echo "✅ All stages completed successfully!"
+          ls -la *.json || echo "No JSON files"
+          if [ -f "moon_data_processed.json" ]; then
+            echo "✅ Processing completed successfully!"
           else
-            echo "⚠️ Processing completed with errors!"
+            echo "⚠️ The processed file was not created."
           fi
+
