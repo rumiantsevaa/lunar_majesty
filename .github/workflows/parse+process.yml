@@ -1,31 +1,19 @@
 name: Moon Data Parser and Processor
 
 # CI/CD workflow for daily updates of https://rumiantsevaa.github.io/lunar_majesty/ data on GitHub Pages 
-
 # GitHub Actions runner (works as master node) scrapes raw moon data - parse_data.py
-
 # (Acts as GA worker that controls the how GA enviroment gets the data, how it's parsed and saves it in GA workflow artifacts.) 
-
 # Raw data is sent to PythonAnywhere (PA) node that acts as enviroment for data processing - bot_launcher.py 
-
 # (Acts as GA worker that controls the how PA enviroment gets the data, how it's processed and saves it in GA workflow artifacts.) 
-
 # Future implementation: GA worker commits processed data to repo (triggering Pages rebuild daily)
 
 # This workflow performs up to 3 sequential attempts of parsing and processing moon data.
-
 # Each attempt is a separate job (attempt1, attempt2, attempt3) linked via needs and if.
-
 # Logic: attempt2 runs only if attempt1 fails (result == 'failure'), attempt3 runs only if attempt2 fails.
-
 # The success/failure of an attempt is determined by the "Verify processed file" step:
-
 #   - If moon_data_processed.json is found → the job exits successfully (exit code 0).
-
 #   - If the file is missing → the job exits with an error (exit 1), triggering the next attempt.
-
 # This ensures that if the first or second attempt succeeds, subsequent attempts are skipped
-
 # and the workflow finishes early.
 
 on:
@@ -62,14 +50,53 @@ jobs:
           # Делаем исполняемым
           chmod +x ./matching_chrome_driver/chromedriver
           
-          # Проверяем версию
+          # Проверяем версию ChromeDriver
           echo "📋 ChromeDriver info:"
           ls -la ./matching_chrome_driver/chromedriver
-          ./matching_chrome_driver/chromedriver --version
+          CHROMEDRIVER_VERSION=$(./matching_chrome_driver/chromedriver --version | grep -oP '\d+\.\d+\.\d+\.\d+')
+          echo "ChromeDriver version: $CHROMEDRIVER_VERSION"
           
           # Проверяем версию Chrome в системе
           echo "📋 System Chrome version:"
-          google-chrome --version || echo "Chrome not found in PATH"
+          CHROME_VERSION=$(google-chrome --version | grep -oP '\d+\.\d+\.\d+\.\d+' || echo "unknown")
+          echo "Chrome version: $CHROME_VERSION"
+          
+          # Определяем основную версию Chrome из ChromeDriver
+          REQUIRED_CHROME_MAJOR=$(echo "$CHROMEDRIVER_VERSION" | cut -d. -f1)
+          CURRENT_CHROME_MAJOR=$(echo "$CHROME_VERSION" | cut -d. -f1)
+          
+          echo "Required Chrome major version: $REQUIRED_CHROME_MAJOR"
+          echo "Current Chrome major version: $CURRENT_CHROME_MAJOR"
+          
+          # Если версии не совпадают, обновляем Chrome
+          if [ "$REQUIRED_CHROME_MAJOR" != "$CURRENT_CHROME_MAJOR" ]; then
+            echo "🔄 Chrome version mismatch. Updating Chrome to version $REQUIRED_CHROME_MAJOR..."
+            
+            # Обновляем Chrome до нужной версии
+            wget -q -O - https://dl.google.com/linux/linux_signing_key.pub | sudo apt-key add -
+            echo "deb [arch=amd64] http://dl.google.com/linux/chrome/deb/ stable main" | sudo tee /etc/apt/sources.list.d/google-chrome.list
+            sudo apt-get update
+            
+            # Пытаемся установить конкретную версию Chrome
+            if sudo apt-get install -y google-chrome-stable; then
+              echo "✅ Chrome updated successfully"
+            else
+              echo "⚠️ Failed to update Chrome via apt, trying manual download..."
+              # Fallback - скачиваем конкретную версию
+              CHROME_URL="https://dl.google.com/linux/chrome/deb/pool/main/g/google-chrome-stable/google-chrome-stable_${REQUIRED_CHROME_MAJOR}.0.0.0-1_amd64.deb"
+              if wget -q "$CHROME_URL" -O chrome.deb; then
+                sudo dpkg -i chrome.deb || sudo apt-get install -f -y
+                echo "✅ Chrome installed manually"
+              else
+                echo "❌ Failed to download Chrome $REQUIRED_CHROME_MAJOR"
+              fi
+            fi
+            
+            # Проверяем обновленную версию
+            google-chrome --version
+          else
+            echo "✅ Chrome version matches ChromeDriver"
+          fi
           
           # Принудительно очищаем кеш undetected_chromedriver
           echo "🧹 Clearing undetected_chromedriver cache..."
