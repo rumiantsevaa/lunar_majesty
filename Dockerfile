@@ -9,7 +9,6 @@ RUN apt-get update && \
 RUN wget -O /tmp/chrome-linux64.zip https://storage.googleapis.com/chrome-for-testing-public/139.0.7258.66/linux64/chrome-linux64.zip && \
     unzip /tmp/chrome-linux64.zip -d /tmp/ && \
     mv /tmp/chrome-linux64 /opt/chrome && \
-    ln -s /opt/chrome/chrome /usr/bin/google-chrome && \
     rm /tmp/chrome-linux64.zip
 
 # Скачать и установить ChromeDriver 139.0.7258.66
@@ -19,13 +18,18 @@ RUN wget -O /tmp/chromedriver-linux64.zip https://storage.googleapis.com/chrome-
     chmod +x /usr/local/bin/chromedriver && \
     rm -rf /tmp/chromedriver-linux64*
 
-# Проверить версии Chrome и ChromeDriver
-RUN google-chrome --version && chromedriver --version
-
 # Создать пользователя для безопасности
 RUN useradd -m -s /bin/bash selenium && \
     mkdir -p /app && \
     chown selenium:selenium /app
+
+# Дать права на Chrome и создать символическую ссылку
+RUN chown -R selenium:selenium /opt/chrome && \
+    ln -s /opt/chrome/chrome /usr/bin/google-chrome && \
+    chown selenium:selenium /usr/bin/google-chrome
+
+# Проверить версии Chrome и ChromeDriver
+RUN google-chrome --version && chromedriver --version
 
 WORKDIR /app
 
@@ -41,8 +45,8 @@ USER selenium
 
 # Настроить переменные окружения для Chrome и Python
 ENV DISPLAY=:99
-ENV CHROME_BIN=/usr/bin/google-chrome
-ENV CHROME_PATH=/usr/bin/google-chrome
-ENV PATH="/usr/local/bin:$PATH"
+ENV CHROME_BIN=/opt/chrome/chrome
+ENV CHROME_PATH=/opt/chrome/chrome
+ENV PATH="/usr/local/bin:/opt/chrome:$PATH"
 
 ENTRYPOINT ["/bin/bash"]
