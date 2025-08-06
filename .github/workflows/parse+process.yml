@@ -8,16 +8,7 @@ name: Moon Data Parser and Processor
 # Raw data is sent to PythonAnywhere (PA) node that acts as enviroment for data processing - bot_launcher.py 
 # (Acts as GA worker that controls the how PA enviroment gets the data, how it's processed and saves it in GA workflow artifacts.) 
 
-# Future implementation: GA worker commits processed data to repo (triggering Pages rebuild daily)
-
-# This workflow performs up to 3 sequential attempts of parsing and processing moon data.
-# Each attempt is a separate job (attempt1, attempt2, attempt3) linked via `needs` and `if`.
-# Logic: attempt2 runs only if attempt1 fails (result == 'failure'), attempt3 runs only if attempt2 fails.
-# The success/failure of an attempt is determined by the "Verify processed file" step:
-#   - If moon_data_processed.json is found → the job exits successfully (exit code 0).
-#   - If the file is missing → the job exits with an error (exit 1), triggering the next attempt.
-# This ensures that if the first or second attempt succeeds, subsequent attempts are skipped
-# and the workflow finishes early.
+# GA worker commits processed data to repo (triggering Pages rebuild daily)
 
 on:
   workflow_dispatch: 
@@ -48,7 +39,12 @@ jobs:
           
       - name: Run and save parser output (Docker)
         run: |
-          docker run --rm --memory=2g --cpus=1 -v ${{ github.workspace }}:/app lunar-selenium python parse_data.py > moon_data.json
+          echo "🔍 Checking Python path in container..."
+          docker run --rm lunar-selenium which python
+          docker run --rm lunar-selenium which python3
+          docker run --rm lunar-selenium ls -la /usr/local/bin/python*
+          echo "🚀 Running parser..."
+          docker run --rm --memory=2g --cpus=1 -v ${{ github.workspace }}:/app lunar-selenium /usr/local/bin/python parse_data.py > moon_data.json
           echo "✅ Raw moon data collected in moon_data.json"
           ls -la moon_data.json
 
@@ -66,7 +62,7 @@ jobs:
           MOON_JSON: ${{ env.MOON_JSON }}
         run: |
           echo "🚀 Launching a selenium controller bot for data processing in the PA node environment..."
-          docker run --rm --memory=2g --cpus=1 -e PA_USERNAME -e PA_PASSWORD -e MOON_JSON -v ${{ github.workspace }}:/app lunar-selenium python bot_launcher.py
+          docker run --rm --memory=2g --cpus=1 -e PA_USERNAME -e PA_PASSWORD -e MOON_JSON -v ${{ github.workspace }}:/app lunar-selenium /usr/local/bin/python bot_launcher.py
 
       - name: Verify processed file
         run: |
@@ -102,4 +98,3 @@ jobs:
           else
             echo "⚠️ The processed file was not created."
           fi
-
