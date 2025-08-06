@@ -1,28 +1,10 @@
 import json
 import sys
-import os
-import shutil
 import undetected_chromedriver as uc
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from bs4 import BeautifulSoup
-from selenium.webdriver.chrome.service import Service
-
-def clear_uc_cache():
-    """Очистить кеш undetected_chromedriver для принудительного использования локального драйвера"""
-    try:
-        cache_dirs = [
-            os.path.expanduser("~/.undetected_chromedriver"),
-            "/tmp/.com.google.Chrome",
-            "/tmp/undetected_chromedriver"
-        ]
-        for cache_dir in cache_dirs:
-            if os.path.exists(cache_dir):
-                shutil.rmtree(cache_dir, ignore_errors=True)
-                print(f"🧹 Cleared cache: {cache_dir}", file=sys.stderr)
-    except Exception as e:
-        print(f"⚠️ Cache clear warning: {e}", file=sys.stderr)
 
 def moon_today_description(driver):
     """Scrapes current moon phase data from timeanddate.com
@@ -130,45 +112,9 @@ def day_inspiration(driver):
         return {"inspiration": {"error": "Can't get the requested data"}}
 
 if __name__ == "__main__":
-    clear_uc_cache()
-    chromedriver_path = os.path.abspath("./matching_chrome_driver/chromedriver")
-
-    if not os.path.exists(chromedriver_path):
-        print(f"Error: ChromeDriver not found at {chromedriver_path}", file=sys.stderr)
-        sys.exit(1)
-    
     options = uc.ChromeOptions()
     options.headless = True
-    options.add_argument('--no-sandbox')
-    options.add_argument('--disable-dev-shm-usage')
-    options.add_argument('--disable-gpu')
-    
-    print(f"Using ChromeDriver at: {chromedriver_path}", file=sys.stderr)
-    os.system("pkill -9 -f chrome || true")
-    os.system("pkill -9 -f google-chrome || true")
-    
-    try:
-        driver = uc.Chrome(
-            options=options,
-            driver_executable_path=chromedriver_path,
-            version_main=139, 
-        )
-        print("✅ undetected_chromedriver started", file=sys.stderr)
-        print("📡 Connected browser version:", driver.capabilities.get("browserVersion", "unknown"), file=sys.stderr)
-    
-    except Exception as e:
-        print(f"❌ Failed to start undetected_chromedriver: {e}", file=sys.stderr)
-        print("🔄 Trying fallback with regular Selenium...", file=sys.stderr)
-        
-        try:
-            from selenium import webdriver
-            service = Service(executable_path=chromedriver_path)
-            driver = webdriver.Chrome(service=service, options=options)
-            print("✅ Fallback driver started", file=sys.stderr)
-            print("📡 Fallback browser version:", driver.capabilities.get("browserVersion", "unknown"), file=sys.stderr)
-        except Exception as e2:
-            print(f"❌ Regular Selenium also failed: {e2}", file=sys.stderr)
-            sys.exit(1)
+    driver = uc.Chrome(options=options)
 
     try:
         # Execute all scraping functions and combine results

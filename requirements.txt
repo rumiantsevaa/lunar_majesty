@@ -2,5 +2,3 @@ selenium==4.34.2
 undetected_chromedriver==3.5.5
 beautifulsoup4==4.13.4
 pyperclip==1.9.0
-requests>=2.31.0
-lxml>=4.9.0
