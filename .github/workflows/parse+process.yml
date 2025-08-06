@@ -35,14 +35,18 @@ jobs:
 
       - name: Build Docker image for selenium scripts
         run: |
-          docker build -t lunar-selenium .
+          docker build --no-cache -t lunar-selenium .
+          
+      - name: Verify Chrome and ChromeDriver versions
+        run: |
+          echo "🔍 Checking Chrome and ChromeDriver versions..."
+          docker run --rm lunar-selenium google-chrome --version
+          docker run --rm lunar-selenium chromedriver --version
           
       - name: Run and save parser output (Docker)
         run: |
-          echo "🔍 Checking Python path in container..."
-          docker run --rm lunar-selenium which python
-          docker run --rm lunar-selenium which python3
-          docker run --rm lunar-selenium ls -la /usr/local/bin/python*
+          echo "🐍 Testing Python in container..."
+          docker run --rm lunar-selenium /usr/local/bin/python --version
           echo "🚀 Running parser..."
           docker run --rm --memory=2g --cpus=1 -v ${{ github.workspace }}:/app lunar-selenium /usr/local/bin/python parse_data.py > moon_data.json
           echo "✅ Raw moon data collected in moon_data.json"
@@ -98,4 +102,3 @@ jobs:
           else
             echo "⚠️ The processed file was not created."
           fi
-
