@@ -247,7 +247,7 @@ jobs:
       - name: Upload processed result
         uses: actions/upload-artifact@v4
         with:
-          name: moon-data-processed-attempt1
+          name: moon-data-processed
           path: |
             moon_data.json
             moon_data_processed.json
