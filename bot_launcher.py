@@ -8,6 +8,22 @@ from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.common.action_chains import ActionChains
 from selenium.webdriver.chrome.service import Service
 
+# Принудительно очищаем кеш undetected_chromedriver
+def clear_uc_cache():
+    """Очистить кеш undetected_chromedriver для принудительного использования локального драйвера"""
+    try:
+        cache_dirs = [
+            os.path.expanduser("~/.undetected_chromedriver"),
+            "/tmp/.com.google.Chrome",
+            "/tmp/undetected_chromedriver"
+        ]
+        for cache_dir in cache_dirs:
+            if os.path.exists(cache_dir):
+                shutil.rmtree(cache_dir, ignore_errors=True)
+                print(f"🧹 Cleared cache: {cache_dir}")
+    except Exception as e:
+        print(f"⚠️ Cache clear warning: {e}")
+
 USERNAME = os.getenv("PA_USERNAME")
 PASSWORD = os.getenv("PA_PASSWORD")
 MOON_JSON = os.getenv("MOON_JSON")
@@ -69,6 +85,9 @@ def run():
         print(f"❌ JSON parsing ERROR: {e}")
         return
 
+    # Очищаем кеш перед созданием драйвера
+    clear_uc_cache()
+
     options = uc.ChromeOptions()
     # Download preferences to suppress download dialog
     prefs = {
@@ -85,12 +104,34 @@ def run():
     options.add_argument("--window-size=1920,1080")
     print("🌐 Starting Chrome...")
     
-    # Use explicit path to ChromeDriver
-    chromedriver_path = "./matching_chrome_driver/chromedriver"
-    service = Service(executable_path=chromedriver_path)
-    driver = uc.Chrome(service=service, options=options)
+    # Принудительно используем локальный ChromeDriver
+    chromedriver_path = os.path.abspath("./matching_chrome_driver/chromedriver")
+    
+    # Убедимся, что файл существует и исполняемый
+    if not os.path.exists(chromedriver_path):
+        raise FileNotFoundError(f"ChromeDriver not found at {chromedriver_path}")
+    
+    print(f"🔧 Using ChromeDriver: {chromedriver_path}")
+    
+    # КЛЮЧЕВОЙ МОМЕНТ: передаем driver_executable_path для принудительного использования нашего драйвера
+    try:
+        driver = uc.Chrome(
+            options=options,
+            driver_executable_path=chromedriver_path,  # Принудительно используем наш драйвер
+            version_main=None,  # Отключаем автоматическое определение версии
+        )
+    except Exception as e:
+        print(f"❌ Failed to create driver with undetected_chromedriver: {e}")
+        print("🔄 Trying fallback method with regular Selenium...")
+        # Fallback к обычному Selenium
+        from selenium import webdriver
+        service = Service(executable_path=chromedriver_path)
+        driver = webdriver.Chrome(service=service, options=options)
     
     try:
+        # Проверим версию ChromeDriver
+        print(f"✅ Chrome started successfully")
+        
         # 1. Login to PythonAnywhere
         print("🔐 Logging into PythonAnywhere...")
         driver.get("https://www.pythonanywhere.com/login/")

@@ -1,5 +1,7 @@
 import json
 import sys
+import os
+import shutil
 import undetected_chromedriver as uc
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
@@ -7,7 +9,20 @@ from selenium.webdriver.support import expected_conditions as EC
 from bs4 import BeautifulSoup
 from selenium.webdriver.chrome.service import Service
 
-import os
+def clear_uc_cache():
+    """Очистить кеш undetected_chromedriver для принудительного использования локального драйвера"""
+    try:
+        cache_dirs = [
+            os.path.expanduser("~/.undetected_chromedriver"),
+            "/tmp/.com.google.Chrome",
+            "/tmp/undetected_chromedriver"
+        ]
+        for cache_dir in cache_dirs:
+            if os.path.exists(cache_dir):
+                shutil.rmtree(cache_dir, ignore_errors=True)
+                print(f"🧹 Cleared cache: {cache_dir}", file=sys.stderr)
+    except Exception as e:
+        print(f"⚠️ Cache clear warning: {e}", file=sys.stderr)
 
 def moon_today_description(driver):
     """Scrapes current moon phase data from timeanddate.com
@@ -115,18 +130,39 @@ def day_inspiration(driver):
         return {"inspiration": {"error": "Can't get the requested data"}}
 
 if __name__ == "__main__":
-    # Use explicit path to ChromeDriver
-    chromedriver_path = "./matching_chrome_driver/chromedriver"
+    # Очищаем кеш перед началом
+    clear_uc_cache()
+    
+    # Используем локальный ChromeDriver принудительно
+    chromedriver_path = os.path.abspath("./matching_chrome_driver/chromedriver")
+    
+    # Проверим существование файла
+    if not os.path.exists(chromedriver_path):
+        print(f"Error: ChromeDriver not found at {chromedriver_path}", file=sys.stderr)
+        sys.exit(1)
+    
     options = uc.ChromeOptions()
     options.headless = True
     options.add_argument('--no-sandbox')
     options.add_argument('--disable-dev-shm-usage')
     options.add_argument('--disable-gpu')
     
-    # Create driver with explicit service path
     print(f"Using ChromeDriver at: {chromedriver_path}", file=sys.stderr)
-    service = Service(executable_path=chromedriver_path)
-    driver = uc.Chrome(service=service, options=options)
+    
+    try:
+        # КЛЮЧЕВОЙ МОМЕНТ: принудительно используем наш ChromeDriver
+        driver = uc.Chrome(
+            options=options,
+            driver_executable_path=chromedriver_path,  # Принудительно используем наш драйвер
+            version_main=None,  # Отключаем автоматическое определение версии
+        )
+    except Exception as e:
+        print(f"Failed to create driver with undetected_chromedriver: {e}", file=sys.stderr)
+        print("Trying fallback method with regular Selenium...", file=sys.stderr)
+        # Fallback к обычному Selenium
+        from selenium import webdriver
+        service = Service(executable_path=chromedriver_path)
+        driver = webdriver.Chrome(service=service, options=options)
     
     try:
         # Execute all scraping functions and combine results
