@@ -60,6 +60,11 @@ jobs:
             wget -q -O - https://dl.google.com/linux/linux_signing_key.pub | sudo apt-key add -
             echo "deb [arch=amd64] http://dl.google.com/linux/chrome/deb/ stable main" | sudo tee /etc/apt/sources.list.d/google-chrome.list
             sudo apt-get update
+           
+            echo "🧹 Removing old Chrome if present..."
+            sudo apt-get remove -y google-chrome-stable || true
+            sudo rm -rf /opt/google/chrome || true
+            sudo rm -f /usr/bin/google-chrome || true
             
             if sudo apt-get install -y google-chrome-stable; then
               echo "✅ Chrome updated successfully"
@@ -161,6 +166,12 @@ jobs:
             wget -q -O - https://dl.google.com/linux/linux_signing_key.pub | sudo apt-key add -
             echo "deb [arch=amd64] http://dl.google.com/linux/chrome/deb/ stable main" | sudo tee /etc/apt/sources.list.d/google-chrome.list
             sudo apt-get update
+
+            echo "🧹 Removing old Chrome if present..."
+            sudo apt-get remove -y google-chrome-stable || true
+            sudo rm -rf /opt/google/chrome || true
+            sudo rm -f /usr/bin/google-chrome || true
+            
             sudo apt-get install -y google-chrome-stable
             
             echo "✅ Chrome updated successfully"
