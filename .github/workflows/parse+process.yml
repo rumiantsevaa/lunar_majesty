@@ -1,13 +1,5 @@
 name: Moon Data Parser and Processor (Dockerized)
 
-# CI/CD workflow for daily updates of https://rumiantsevaa.github.io/lunar_majesty/ data on GitHub Pages 
-# GitHub Actions runner (works as master node) scrapes raw moon data - parse_data.py
-# (Acts as GA worker that controls the how GA enviroment gets the data, how it's parsed and saves it in GA workflow artifacts.) 
-# Raw data is sent to PythonAnywhere (PA) node that acts as enviroment for data processing - bot_launcher.py 
-# (Acts as GA worker that controls the how PA enviroment gets the data, how it's processed and saves it in GA workflow artifacts.) 
-# GA worker commits processed data to repo (triggering Pages rebuild daily)
-
-
 on:
   workflow_dispatch: 
   schedule:
@@ -33,36 +25,34 @@ jobs:
           mkdir -p /usr/local/bin
           cp matching_chrome_driver/chromedriver /usr/local/bin/
           chmod +x /usr/local/bin/chromedriver
-          ln -s /usr/local/bin/chromedriver /usr/bin/chromedriver
+          ln -sf /usr/local/bin/chromedriver /usr/bin/chromedriver
           /usr/local/bin/chromedriver --version
-          which chromedriver
 
       - name: Verify Chrome and Driver versions
         run: |
           echo "Chrome version:"
-          docker run --rm moon-parser google-chrome --version || echo "Chrome not found in parser"
-          docker run --rm moon-bot google-chrome --version || echo "Chrome not found in bot"
-          echo "ChromeDriver version:"
-          docker run --rm moon-parser chromedriver --version || echo "Driver not found in parser"
-          docker run --rm moon-bot chromedriver --version || echo "Driver not found in bot"
+          docker run --rm $(docker build -q -f Dockerfile.parse_data .) google-chrome --version || echo "Chrome not found in parser"
+          echo "ChromeDriver version:" 
+          docker run --rm $(docker build -q -f Dockerfile.parse_data .) chromedriver --version || echo "Driver not found in parser"
 
       - name: Build and run parser container
         run: |
           docker build -t moon-parser -f Dockerfile.parse_data \
             --build-arg CHROMEDRIVER_PATH=matching_chrome_driver/chromedriver .
           
+          mkdir -p artifacts
           docker run --rm \
-            -v $(pwd):/app/output \
+            -v $(pwd)/artifacts:/app/output \
             -v /usr/local/bin/chromedriver:/usr/local/bin/chromedriver \
-            moon-parser > moon_data.json
+            moon-parser > artifacts/moon_data.json
           
-          echo "✅ Raw moon data collected in moon_data.json"
-          ls -la moon_data.json
+          echo "✅ Raw moon data collected"
+          ls -la artifacts/moon_data.json
 
       - name: Prepare JSON for bot
         id: prepare-json
         run: |
-          CONTENT=$(cat moon_data.json | jq -c .)
+          CONTENT=$(cat artifacts/moon_data.json | jq -c .)
           echo "content=${CONTENT}" >> $GITHUB_OUTPUT
           echo "MOON_JSON=${CONTENT}" >> $GITHUB_ENV
 
@@ -79,44 +69,40 @@ jobs:
             -e PA_USERNAME=$PA_USERNAME \
             -e PA_PASSWORD=$PA_PASSWORD \
             -e MOON_JSON="$MOON_JSON" \
-            -v $(pwd):/app/output \
+            -v $(pwd)/artifacts:/app/output \
             -v /usr/local/bin/chromedriver:/usr/local/bin/chromedriver \
             moon-bot
 
       - name: Verify processed file
         run: |
-          if [ -f "moon_data_processed.json" ]; then
+          if [ -f "artifacts/moon_data_processed.json" ]; then
             echo "✅ The processed file was created successfully!"
-            echo "📊 File size: $(wc -c < moon_data_processed.json) byte"
+            echo "📊 File size: $(wc -c < artifacts/moon_data_processed.json) byte"
             echo "📝 First 200 characters:"
-            head -c 200 moon_data_processed.json
+            head -c 200 artifacts/moon_data_processed.json
             echo ""
             echo "..."
           else
             echo "❌ Processed file not found"
-            ls -la *.json || echo "No JSON files"
+            ls -la artifacts/*.json || echo "No JSON files"
             exit 1
           fi
 
-      - name: Upload artifacts
+      - name: Upload workflow artifacts
         uses: actions/upload-artifact@v4
         with:
           name: moon-data-processed
           path: |
-            moon_data.json
-            moon_data_processed.json
+            artifacts/moon_data.json
+            artifacts/moon_data_processed.json
           retention-days: 30
 
-      - name: Commit processed data
+      - name: Commit to repository
         if: success()
         run: |
           git config --global user.email "lunar-bot@github.com"
           git config --global user.name "Lunar Majesty Bot"
           
-          mkdir -p artifacts
-          [ -f moon_data_processed.json ] && mv moon_data_processed.json artifacts/
-          [ -f moon_data.json ] && mv moon_data.json artifacts/
-
           git add artifacts/*.json
           if git diff --cached --quiet; then
             echo "⚠️ No changes to commit"
@@ -132,4 +118,3 @@ jobs:
           echo "📋 Final status:"
           ls -la artifacts/*.json || echo "No JSON files found"
           echo "🌙 Processing completed!"
-          
