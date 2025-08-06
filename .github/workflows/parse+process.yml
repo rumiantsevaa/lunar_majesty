@@ -30,8 +30,8 @@ jobs:
 
       - name: Prepare ChromeDriver
         run: |
-          sudo cp matching_chrome_driver/chromedriver /usr/local/bin/
-          sudo chmod +x /usr/local/bin/chromedriver
+          cp matching_chrome_driver/chromedriver /usr/local/bin/
+          chmod +x /usr/local/bin/chromedriver
           chromedriver --version
 
       - name: Build and run parser container
