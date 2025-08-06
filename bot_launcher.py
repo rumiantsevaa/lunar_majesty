@@ -83,7 +83,7 @@ def run():
     options.add_argument("--disable-dev-shm-usage")
     options.add_argument("--window-size=1920,1080")
     print("🌐 Starting Chrome...")
-    driver = uc.Chrome(options=options)
+    driver = uc.Chrome(options=options, version_main=138)
     
     try:
         # 1. Login to PythonAnywhere
