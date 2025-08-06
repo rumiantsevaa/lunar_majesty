@@ -144,6 +144,17 @@ jobs:
         run: |
           echo "🚀 Launching a selenium controller bot for data processing in the PA node environment..."
           echo "📋 Using ChromeDriver: $CHROMEDRIVER_PATH"
+          
+          # Принудительно проверим версии еще раз перед запуском
+          echo "🔍 Final version check:"
+          google-chrome --version
+          ./matching_chrome_driver/chromedriver --version
+          
+          # Убиваем все процессы Chrome чтобы избежать конфликтов
+          pkill -f chrome || true
+          pkill -f google-chrome || true
+          sleep 2
+          
           python bot_launcher.py
 
       - name: Verify processed file
@@ -159,39 +170,6 @@ jobs:
               echo "❌ Invalid JSON in processed file"
               exit 1
             fi
-            echo "📝 First 200 characters:"
-            head -c 200 moon_data_processed.json
-            echo ""
-            echo "..."
-          else
-            echo "❌ Processed file not found"
-            ls -la *.json || echo "No JSON files"
-            exit 1
-          fi
-
-      - name: Upload processed result
-        uses: actions/upload-artifact@v4
-        with:
-          name: moon-data-processed-attempt3
-          path: |
-            moon_data.json
-            moon_data_processed.json
-          retention-days: 30
-
-      - name: Show final status
-        if: always()
-        run: |
-          echo "📋 Final status for attempt 3:"
-          ls -la *.json || echo "No JSON files"
-          if [ -f "moon_data_processed.json" ]; then
-            echo "✅ Processing completed successfully!"
-          else
-            echo "⚠️ The processed file was not created."
-          fi in processed file"
-              head -c 500 moon_data_processed.json
-              exit 1
-            fi
-            
             echo "📝 First 200 characters:"
             head -c 200 moon_data_processed.json
             echo ""
