@@ -2,6 +2,7 @@ import os
 import time
 import json
 import shutil
+import subprocess
 import undetected_chromedriver as uc
 from selenium.webdriver.common.by import By
 from selenium.webdriver.common.keys import Keys
@@ -88,6 +89,43 @@ def run():
     # Очищаем кеш перед созданием драйвера
     clear_uc_cache()
 
+    # Проверяем совместимость версий Chrome и ChromeDriver
+    chromedriver_path = os.path.abspath("./matching_chrome_driver/chromedriver")
+    
+    if not os.path.exists(chromedriver_path):
+        raise FileNotFoundError(f"ChromeDriver not found at {chromedriver_path}")
+    
+    # Получаем версии
+    import subprocess
+    try:
+        # Версия ChromeDriver
+        result = subprocess.run([chromedriver_path, '--version'], capture_output=True, text=True)
+        chromedriver_version = result.stdout.strip()
+        chromedriver_major = chromedriver_version.split()[1].split('.')[0]
+        print(f"🔍 ChromeDriver version: {chromedriver_version}")
+        
+        # Версия Chrome
+        result = subprocess.run(['google-chrome', '--version'], capture_output=True, text=True)
+        chrome_version = result.stdout.strip()
+        chrome_major = chrome_version.split()[-1].split('.')[0]
+        print(f"🔍 Chrome version: {chrome_version}")
+        
+        print(f"🔍 ChromeDriver major: {chromedriver_major}, Chrome major: {chrome_major}")
+        
+        # Если версии не совпадают, принудительно перезагружаем окружение
+        if chromedriver_major != chrome_major:
+            print(f"⚠️ Version mismatch detected!")
+            print(f"   ChromeDriver expects Chrome {chromedriver_major}")
+            print(f"   Current Chrome version {chrome_major}")
+            
+            # Попробуем перезапустить процессы Chrome
+            subprocess.run(['pkill', '-f', 'chrome'], capture_output=True)
+            subprocess.run(['pkill', '-f', 'google-chrome'], capture_output=True)
+            time.sleep(2)
+            
+    except Exception as e:
+        print(f"⚠️ Version check failed: {e}")
+
     options = uc.ChromeOptions()
     # Download preferences to suppress download dialog
     prefs = {
@@ -102,14 +140,9 @@ def run():
     options.add_argument("--no-sandbox")
     options.add_argument("--disable-dev-shm-usage")
     options.add_argument("--window-size=1920,1080")
+    options.add_argument("--disable-features=VizDisplayCompositor")  # Дополнительная совместимость
+    options.add_argument("--disable-extensions")
     print("🌐 Starting Chrome...")
-    
-    # Принудительно используем локальный ChromeDriver
-    chromedriver_path = os.path.abspath("./matching_chrome_driver/chromedriver")
-    
-    # Убедимся, что файл существует и исполняемый
-    if not os.path.exists(chromedriver_path):
-        raise FileNotFoundError(f"ChromeDriver not found at {chromedriver_path}")
     
     print(f"🔧 Using ChromeDriver: {chromedriver_path}")
     
@@ -120,13 +153,75 @@ def run():
             driver_executable_path=chromedriver_path,  # Принудительно используем наш драйвер
             version_main=None,  # Отключаем автоматическое определение версии
         )
+        print("✅ undetected_chromedriver created successfully")
     except Exception as e:
         print(f"❌ Failed to create driver with undetected_chromedriver: {e}")
         print("🔄 Trying fallback method with regular Selenium...")
         # Fallback к обычному Selenium
-        from selenium import webdriver
-        service = Service(executable_path=chromedriver_path)
-        driver = webdriver.Chrome(service=service, options=options)
+        try:
+            from selenium import webdriver
+            service = Service(executable_path=chromedriver_path)
+            driver = webdriver.Chrome(service=service, options=options)
+            print("✅ Regular Selenium driver created successfully")
+        except Exception as e2:
+            print(f"❌ Regular Selenium also failed: {e2}")
+            print("🔄 Trying to download compatible ChromeDriver...")
+            
+            # Последний fallback - скачать совместимый ChromeDriver
+            import requests
+            
+            try:
+                # Получаем версию Chrome
+                result = subprocess.run(['google-chrome', '--version'], capture_output=True, text=True)
+                chrome_version = result.stdout.strip().split()[-1]
+                chrome_major = chrome_version.split('.')[0]
+                
+                print(f"Detected Chrome version: {chrome_version}, major: {chrome_major}")
+                
+                # Скачиваем подходящий ChromeDriver
+                chromedriver_url = f"https://chromedriver.storage.googleapis.com/LATEST_RELEASE_{chrome_major}"
+                response = requests.get(chromedriver_url)
+                if response.status_code == 200:
+                    latest_version = response.text.strip()
+                    download_url = f"https://chromedriver.storage.googleapis.com/{latest_version}/chromedriver_linux64.zip"
+                    
+                    print(f"Downloading ChromeDriver {latest_version}...")
+                    
+                    import zipfile
+                    import tempfile
+                    
+                    with tempfile.TemporaryDirectory() as temp_dir:
+                        zip_path = os.path.join(temp_dir, "chromedriver.zip")
+                        
+                        # Скачиваем
+                        with requests.get(download_url) as r:
+                            r.raise_for_status()
+                            with open(zip_path, 'wb') as f:
+                                f.write(r.content)
+                        
+                        # Распаковываем
+                        with zipfile.ZipFile(zip_path, 'r') as zip_ref:
+                            zip_ref.extractall(temp_dir)
+                        
+                        # Заменяем драйвер
+                        new_chromedriver = os.path.join(temp_dir, "chromedriver")
+                        if os.path.exists(new_chromedriver):
+                            shutil.copy(new_chromedriver, chromedriver_path)
+                            os.chmod(chromedriver_path, 0o755)
+                            print(f"✅ Downloaded and installed compatible ChromeDriver")
+                            
+                            # Пробуем снова
+                            service = Service(executable_path=chromedriver_path)
+                            driver = webdriver.Chrome(service=service, options=options)
+                            print("✅ Successfully created driver with downloaded ChromeDriver")
+                        else:
+                            raise Exception("Downloaded ChromeDriver not found")
+                else:
+                    raise Exception(f"Failed to get ChromeDriver version info: {response.status_code}")
+                    
+            except Exception as e3:
+                print(f"All fallback methods failed: {e3}")
+                raise Exception("Could not create Chrome driver with any method")
     
     try:
         # Проверим версию ChromeDriver
