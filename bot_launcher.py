@@ -94,7 +94,8 @@ def run():
     options.add_argument("--max_old_space_size=4096")
     options.add_argument("--window-size=1920,1080")
     print("🌐 Starting Chrome...")
-    driver = uc.Chrome(options=options)
+    # Использовать явно установленный ChromeDriver 139
+    driver = uc.Chrome(driver_executable_path="/usr/local/bin/chromedriver", options=options)
     
     try:
         # 1. Login to PythonAnywhere

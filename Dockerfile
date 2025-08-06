@@ -6,6 +6,7 @@ RUN apt-get update && \
     wget \
     gnupg2 \
     ca-certificates \
+    unzip \
     fonts-liberation \
     libasound2 \
     libatk-bridge2.0-0 \

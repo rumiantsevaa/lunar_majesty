@@ -129,7 +129,8 @@ if __name__ == "__main__":
     options.add_argument("--disable-ipc-flooding-protection")
     options.add_argument("--memory-pressure-off")
     options.add_argument("--max_old_space_size=4096")
-    driver = uc.Chrome(options=options)
+    # Использовать явно установленный ChromeDriver 139
+    driver = uc.Chrome(driver_executable_path="/usr/local/bin/chromedriver", options=options)
 
     try:
         # Execute all scraping functions and combine results
