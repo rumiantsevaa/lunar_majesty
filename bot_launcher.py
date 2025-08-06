@@ -151,7 +151,7 @@ def run():
         driver = uc.Chrome(
             options=options,
             driver_executable_path=chromedriver_path,  # Принудительно используем наш драйвер
-            version_main=None,  # Отключаем автоматическое определение версии
+            version_main=139,
         )
         print("✅ undetected_chromedriver created successfully")
     except Exception as e:
