@@ -113,8 +113,8 @@ def day_inspiration(driver):
 
 if __name__ == "__main__":
     options = uc.ChromeOptions()
-    options.headless = True
-    driver = uc.Chrome(options=options)
+    options.add_argument("--headless")
+    driver = uc.Chrome(options=options, version_main=138)
 
     try:
         # Execute all scraping functions and combine results
