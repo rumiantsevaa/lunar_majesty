@@ -10,9 +10,12 @@ on:
 jobs:
   parse-and-process:
     runs-on: ubuntu-latest
+    timeout-minutes: 15
+
     container:
-      image: docker:dind
+      image: docker:latest
       options: --privileged
+
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -20,17 +23,22 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
-      - name: Build and run parser container
+      - name: Build parser container
         run: |
+          echo "🔧 Building parser container..."
           docker build -t moon-parser -f Dockerfile.parse_data .
+          echo "✅ Container built: moon-parser"
 
+      - name: Run parser and save output
+        run: |
+          echo "🚀 Running parser..."
           mkdir -p artifacts
           docker run --rm \
             -v $(pwd)/artifacts:/app/output \
             moon-parser > artifacts/moon_data.json
 
-          echo "✅ Raw moon data collected"
-          ls -la artifacts/moon_data.json
+          echo "📦 Checking file:"
+          ls -la artifacts/moon_data.json || echo "❌ File not created"
 
       - name: Prepare JSON for bot
         id: prepare-json
@@ -38,38 +46,43 @@ jobs:
           CONTENT=$(cat artifacts/moon_data.json | jq -c .)
           echo "content=${CONTENT}" >> $GITHUB_OUTPUT
           echo "MOON_JSON=${CONTENT}" >> $GITHUB_ENV
+          echo "✅ JSON saved to environment variable"
 
-      - name: Build and run bot container
+      - name: Build bot container
+        run: |
+          echo "🔧 Building bot container..."
+          docker build -t moon-bot -f Dockerfile.bot_launcher .
+          echo "✅ Container built: moon-bot"
+
+      - name: Run bot to process data
         env:
           PA_USERNAME: ${{ secrets.PA_USERNAME }}
           PA_PASSWORD: ${{ secrets.PA_PASSWORD }}
           MOON_JSON: ${{ steps.prepare-json.outputs.content }}
         run: |
-          docker build -t moon-bot -f Dockerfile.bot_launcher .
-
-          docker run --rm \
+          echo "🚀 Running bot to process data..."
+          timeout 150s docker run --rm \
             -e PA_USERNAME=$PA_USERNAME \
             -e PA_PASSWORD=$PA_PASSWORD \
             -e MOON_JSON="$MOON_JSON" \
             -v $(pwd)/artifacts:/app/output \
-            moon-bot
+            moon-bot || echo "❌ Bot failed or timed out"
 
       - name: Verify processed file
         run: |
+          echo "📦 Checking for processed file..."
           if [ -f "artifacts/moon_data_processed.json" ]; then
-            echo "✅ The processed file was created successfully!"
-            echo "📊 File size: $(wc -c < artifacts/moon_data_processed.json) byte"
-            echo "📝 First 200 characters:"
+            echo "✅ File created successfully!"
+            echo "📊 Size: $(wc -c < artifacts/moon_data_processed.json) bytes"
+            echo "📝 Preview (200 chars):"
             head -c 200 artifacts/moon_data_processed.json
-            echo ""
-            echo "..."
           else
             echo "❌ Processed file not found"
-            ls -la artifacts/*.json || echo "No JSON files"
+            ls -la artifacts/*.json || echo "No files found"
             exit 1
           fi
 
-      - name: Upload workflow artifacts
+      - name: Upload artifacts
         uses: actions/upload-artifact@v4
         with:
           name: moon-data-processed
@@ -78,24 +91,13 @@ jobs:
             artifacts/moon_data_processed.json
           retention-days: 30
 
-      - name: Commit to repository
-        if: success()
-        run: |
-          git config --global user.email "lunar-bot@github.com"
-          git config --global user.name "Lunar Majesty Bot"
-
-          git add artifacts/*.json
-          if git diff --cached --quiet; then
-            echo "⚠️ No changes to commit"
-          else
-            git commit -m "🌙 Auto-update lunar data $(date +'%Y-%m-%d %H:%M UTC')"
-            git push origin main
-            echo "✅ Changes committed and pushed"
-          fi
-
       - name: Show final status
         if: always()
         run: |
           echo "📋 Final status:"
-          ls -la artifacts/*.json || echo "No JSON files found"
-          echo "🌙 Processing completed!"
+          ls -la artifacts/*.json || echo "❌ JSON files not found"
+          if [ -f "artifacts/moon_data_processed.json" ]; then
+            echo "✅ All stages completed successfully!"
+          else
+            echo "⚠️ Processing completed with errors!"
+          fi
