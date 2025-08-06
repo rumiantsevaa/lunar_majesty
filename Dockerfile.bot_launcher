@@ -1,7 +1,5 @@
 FROM python:3.10-slim
 
-ARG CHROMEDRIVER_PATH
-
 RUN apt-get update && apt-get install -y \
     wget \
     gnupg \
@@ -12,8 +10,11 @@ RUN apt-get update && apt-get install -y \
     google-chrome-stable \
     && rm -rf /var/lib/apt/lists/*
 
-COPY ${CHROMEDRIVER_PATH} /usr/local/bin/chromedriver
-RUN chmod +x /usr/local/bin/chromedriver
+RUN wget -O /tmp/chromedriver.zip https://edgedl.me.gvt1.com/edgedl/chrome/chrome-for-testing/139.0.7258.66/linux64/chromedriver-linux64.zip \
+    && unzip /tmp/chromedriver.zip -d /tmp/ \
+    && mv /tmp/chromedriver-linux64/chromedriver /usr/local/bin/chromedriver \
+    && chmod +x /usr/local/bin/chromedriver \
+    && rm -rf /tmp/*
 
 WORKDIR /app
 RUN mkdir -p downloads
