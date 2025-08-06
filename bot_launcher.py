@@ -7,6 +7,20 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.common.action_chains import ActionChains
 
+# Add to PATH
+chromedriver_path = None
+if os.path.exists("matching_chrome_driver/chromedriver"):
+    chromedriver_path = os.path.abspath("matching_chrome_driver/chromedriver")
+
+options = uc.ChromeOptions()
+options.headless = True
+
+# If the path is set explicitly, use it, otherwise search in PATH
+if chromedriver_path:
+    driver = uc.Chrome(driver_executable_path=chromedriver_path, options=options)
+else:
+    driver = uc.Chrome(options=options)  # PATH
+
 USERNAME = os.getenv("PA_USERNAME")
 PASSWORD = os.getenv("PA_PASSWORD")
 MOON_JSON = os.getenv("MOON_JSON")
