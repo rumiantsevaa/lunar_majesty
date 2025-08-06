@@ -40,7 +40,7 @@ jobs:
       - name: Verify Chrome and ChromeDriver versions
         run: |
           echo "🔍 Checking Chrome and ChromeDriver versions..."
-          docker run --rm lunar-selenium google-chrome --version
+          docker run --rm lunar-selenium /opt/chrome/chrome --version
           docker run --rm lunar-selenium chromedriver --version
           
       - name: Run and save parser output (Docker)
