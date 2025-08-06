@@ -125,7 +125,7 @@ if __name__ == "__main__":
     # if chromedriver_path:
         # driver = uc.Chrome(driver_executable_path=chromedriver_path, options=options)
     # else:
-        # driver = uc.Chrome(options=options)  # Search in PATH
+    driver = uc.Chrome(options=options)  # Search in PATH
     try:
         # Execute all scraping functions and combine results
         data = {
