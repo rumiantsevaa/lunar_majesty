@@ -128,6 +128,13 @@ jobs:
       - name: Install dependencies
         run: pip install -r requirements.txt
 
+      - name: Make ChromeDriver executable and add to PATH
+        run: |
+          chmod +x ./matching_chrome_driver/chromedriver
+          echo "$PWD/matching_chrome_driver" >> $GITHUB_PATH
+          ./matching_chrome_driver/chromedriver --version
+          echo "✅ ChromeDriver configured and version verified"
+
       - name: Run and save parser output
         run: |
           python parse_data.py > moon_data.json
@@ -206,6 +213,13 @@ jobs:
 
       - name: Install dependencies
         run: pip install -r requirements.txt
+
+      - name: Make ChromeDriver executable and add to PATH
+        run: |
+          chmod +x ./matching_chrome_driver/chromedriver
+          echo "$PWD/matching_chrome_driver" >> $GITHUB_PATH
+          ./matching_chrome_driver/chromedriver --version
+          echo "✅ ChromeDriver configured and version verified"
 
       - name: Run and save parser output
         run: |
