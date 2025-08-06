@@ -29,11 +29,6 @@ jobs:
         with:
           python-version: "3.10"
 
-      - name: Setup Chrome
-        uses: browser-actions/setup-chrome@v1
-        with:
-          chrome-version: '139' 
-
       - name: Install dependencies
         run: pip install -r requirements.txt
 
