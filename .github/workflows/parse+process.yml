@@ -30,9 +30,21 @@ jobs:
 
       - name: Prepare ChromeDriver
         run: |
+          mkdir -p /usr/local/bin
           cp matching_chrome_driver/chromedriver /usr/local/bin/
           chmod +x /usr/local/bin/chromedriver
-          chromedriver --version
+          ln -s /usr/local/bin/chromedriver /usr/bin/chromedriver
+          /usr/local/bin/chromedriver --version
+          which chromedriver
+
+      - name: Verify Chrome and Driver versions
+        run: |
+          echo "Chrome version:"
+          docker run --rm moon-parser google-chrome --version || echo "Chrome not found in parser"
+          docker run --rm moon-bot google-chrome --version || echo "Chrome not found in bot"
+          echo "ChromeDriver version:"
+          docker run --rm moon-parser chromedriver --version || echo "Driver not found in parser"
+          docker run --rm moon-bot chromedriver --version || echo "Driver not found in bot"
 
       - name: Build and run parser container
         run: |
@@ -120,5 +132,4 @@ jobs:
           echo "📋 Final status:"
           ls -la artifacts/*.json || echo "No JSON files found"
           echo "🌙 Processing completed!"
-          fi
           
