@@ -43,7 +43,7 @@ jobs:
       - name: Prepare JSON for bot
         id: prepare-json
         run: |
-          CONTENT=$(cat artifacts/moon_data.json | jq -c .)
+          CONTENT=$(cat artifacts/moon_data.json | tr -d '\n' | tr -d '\r')
           echo "content=${CONTENT}" >> $GITHUB_OUTPUT
           echo "MOON_JSON=${CONTENT}" >> $GITHUB_ENV
           echo "✅ JSON saved to environment variable"
