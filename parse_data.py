@@ -5,6 +5,7 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from bs4 import BeautifulSoup
+from selenium.webdriver.chrome.service import Service
 
 import os
 
@@ -114,18 +115,19 @@ def day_inspiration(driver):
         return {"inspiration": {"error": "Can't get the requested data"}}
 
 if __name__ == "__main__":
-    # chromedriver_path = None
-    # if os.path.exists("matching_chrome_driver/chromedriver"):
-        # chromedriver_path = os.path.abspath("matching_chrome_driver/chromedriver")
-    
+    # Use explicit path to ChromeDriver
+    chromedriver_path = "./matching_chrome_driver/chromedriver"
     options = uc.ChromeOptions()
     options.headless = True
+    options.add_argument('--no-sandbox')
+    options.add_argument('--disable-dev-shm-usage')
+    options.add_argument('--disable-gpu')
     
-    # Create driver with the correct path
-    # if chromedriver_path:
-        # driver = uc.Chrome(driver_executable_path=chromedriver_path, options=options)
-    # else:
-    driver = uc.Chrome(options=options)  # Search in PATH
+    # Create driver with explicit service path
+    print(f"Using ChromeDriver at: {chromedriver_path}", file=sys.stderr)
+    service = Service(executable_path=chromedriver_path)
+    driver = uc.Chrome(service=service, options=options)
+    
     try:
         # Execute all scraping functions and combine results
         data = {
