@@ -78,14 +78,42 @@ def run():
     }
     options.add_experimental_option("prefs", prefs)
 
-    options.headless = True
-    options.add_argument("--no-sandbox")
-    options.add_argument("--disable-dev-shm-usage")
-    options.add_argument("--window-size=1920,1080")
+    # Chrome options for Docker container
+    options.add_argument('--headless')
+    options.add_argument('--no-sandbox')
+    options.add_argument('--disable-dev-shm-usage')
+    options.add_argument('--disable-gpu')
+    options.add_argument('--disable-web-security')
+    options.add_argument('--disable-features=VizDisplayCompositor')
+    options.add_argument('--disable-extensions')
+    options.add_argument('--disable-plugins')
+    options.add_argument('--disable-background-timer-throttling')
+    options.add_argument('--disable-backgrounding-occluded-windows')
+    options.add_argument('--disable-renderer-backgrounding')
+    options.add_argument('--disable-features=TranslateUI')
+    options.add_argument('--disable-ipc-flooding-protection')
+    options.add_argument('--window-size=1920,1080')
+    options.add_argument('--user-agent=Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.0.0 Safari/537.36')
+    
+    # Set Chrome binary path if available
+    if os.path.exists('/usr/bin/google-chrome-stable'):
+        options.binary_location = '/usr/bin/google-chrome-stable'
+    
+    # Set ChromeDriver path if available
+    chromedriver_path = os.environ.get('CHROMEDRIVER_PATH', '/usr/local/bin/chromedriver')
+    
     print("🌐 Starting Chrome...")
-    driver = uc.Chrome(options=options)
+    driver = uc.Chrome(
+        options=options,
+        driver_executable_path=chromedriver_path,
+        version_main=139
+    )
     
     try:
+        # Set page load timeout
+        driver.set_page_load_timeout(30)
+        driver.implicitly_wait(10)
+        
         # 1. Login to PythonAnywhere
         print("🔐 Logging into PythonAnywhere...")
         driver.get("https://www.pythonanywhere.com/login/")
@@ -207,7 +235,11 @@ def run():
         traceback.print_exc()
     finally:
         print("🔚 Closing browser...")
-        driver.quit()
+        if driver:
+            try:
+                driver.quit()
+            except:
+                pass
 
 if __name__ == "__main__":
     run()
