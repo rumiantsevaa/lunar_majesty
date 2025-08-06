@@ -45,7 +45,7 @@ jobs:
       - name: Make ChromeDriver executable and add to PATH
         run: |
           chmod +x ./matching_chrome_driver/chromedriver
-          echo "$PWD/matching_chrome_driver" >> $GITHUB_PATH
+          echo "ChromeDriver version:"
           ./matching_chrome_driver/chromedriver --version
           echo "✅ ChromeDriver configured and version verified"
 
@@ -131,7 +131,7 @@ jobs:
       - name: Make ChromeDriver executable and add to PATH
         run: |
           chmod +x ./matching_chrome_driver/chromedriver
-          echo "$PWD/matching_chrome_driver" >> $GITHUB_PATH
+          echo "ChromeDriver version:"
           ./matching_chrome_driver/chromedriver --version
           echo "✅ ChromeDriver configured and version verified"
 
@@ -217,7 +217,7 @@ jobs:
       - name: Make ChromeDriver executable and add to PATH
         run: |
           chmod +x ./matching_chrome_driver/chromedriver
-          echo "$PWD/matching_chrome_driver" >> $GITHUB_PATH
+          echo "ChromeDriver version:"
           ./matching_chrome_driver/chromedriver --version
           echo "✅ ChromeDriver configured and version verified"
 
