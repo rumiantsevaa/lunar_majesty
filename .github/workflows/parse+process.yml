@@ -10,10 +10,10 @@ name: Moon Data Parser and Processor
 
 # GA worker commits processed data to repo (triggering Pages rebuild daily)
 
-on:
-  workflow_dispatch:
-  schedule:
-    - cron: "0 */2 * * *"
+# on:
+#   workflow_dispatch:
+#   schedule:
+#     - cron: "0 */2 * * *"
 
 jobs:
   parse-and-process:
