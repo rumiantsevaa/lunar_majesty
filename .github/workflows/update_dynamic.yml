@@ -1,11 +1,11 @@
 name: Update Dynamic Content on Site
 
-on:
-  workflow_run:
-    workflows: ["Moon Data Parser and Processor"]
-    types:
-      - completed
-  workflow_dispatch:
+# on:
+#   workflow_run:
+#     workflows: ["Moon Data Parser and Processor"]
+#     types:
+#       - completed
+#   workflow_dispatch:
 
 jobs:
   get-latest-artifact:
