@@ -132,7 +132,10 @@ if __name__ == "__main__":
             "inspiration": day_inspiration(driver)
         }
         # Output combined data as pretty-printed JSON
-        print(json.dumps(data, ensure_ascii=False, indent=2))
+        with open("moon_data.json", "w", encoding="utf-8") as f:
+            json.dump(data, f, ensure_ascii=False, indent=2)
+        print(f"✅ Moon data saved to moon_data.json, preview:\n{json.dumps(data, ensure_ascii=False)[:300]}...")
+
     except Exception as e:
         # Handle any errors during execution
         print(f"Error: {str(e)}", file=sys.stderr)
