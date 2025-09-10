@@ -10,15 +10,14 @@ name: Moon Data Parser and Processor
 
 # GA worker commits processed data to repo (triggering Pages rebuild daily)
 
-
 on:
-  workflow_dispatch: 
+  workflow_dispatch:
   schedule:
     - cron: "0 */2 * * *"
-    
+
 jobs:
-  parse-and-process: 
-    runs-on: ubuntu-latest  # Primary worker node
+  parse-and-process:
+    runs-on: ubuntu-latest # Primary worker node
     timeout-minutes: 15
     steps:
       - name: Checkout repository
@@ -31,6 +30,12 @@ jobs:
 
       - name: Install dependencies
         run: pip install -r requirements.txt
+
+      - name: Get Chrome version
+        run: |
+          google-chrome --version | awk '{print $3}' | cut -d'.' -f1 > chrome_version.txt
+          echo "CHROME_VERSION=$(cat chrome_version.txt)" >> $GITHUB_ENV
+          echo "✅ Chrome version detected: $(cat chrome_version.txt)"
 
       - name: Run and save parser output
         run: |
@@ -50,6 +55,7 @@ jobs:
           PA_USERNAME: ${{ secrets.PA_USERNAME }}
           PA_PASSWORD: ${{ secrets.PA_PASSWORD }}
           MOON_JSON: ${{ env.MOON_JSON }}
+          CHROME_VERSION: ${{ env.CHROME_VERSION }}
         run: |
           echo "🚀 Launching a selenium controller bot for data processing in the PA node environment..."
           python bot_launcher.py
@@ -88,4 +94,3 @@ jobs:
           else
             echo "⚠️ The processed file was not created."
           fi
-
