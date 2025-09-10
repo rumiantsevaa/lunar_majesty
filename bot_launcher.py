@@ -107,7 +107,11 @@ def run():
 
         active_element = driver.switch_to.active_element
         print("📋 Clearing editor...")
-        ActionChains(driver).key_down(Keys.CONTROL).send_keys('a').key_up(Keys.CONTROL).perform()
+        ActionChains(driver)\
+            .key_down(Keys.CONTROL)\
+            .send_keys('a')\
+            .key_up(Keys.CONTROL)\
+            .perform()
         time.sleep(1)
         active_element.send_keys(Keys.DELETE)
         time.sleep(1)
@@ -119,7 +123,11 @@ def run():
         time.sleep(2)
 
         print("💾 Saving file...")
-        ActionChains(driver).key_down(Keys.CONTROL).send_keys('s').key_up(Keys.CONTROL).perform()
+        ActionChains(driver)\
+            .key_down(Keys.CONTROL)\
+            .send_keys('s')\
+            .key_up(Keys.CONTROL)\
+            .perform()
         time.sleep(3)
         print("✅ File moon_data.json saved")
 
