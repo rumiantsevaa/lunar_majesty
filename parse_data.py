@@ -1,3 +1,4 @@
+import os
 import json
 import sys
 import undetected_chromedriver as uc
@@ -112,9 +113,16 @@ def day_inspiration(driver):
         return {"inspiration": {"error": "Can't get the requested data"}}
 
 if __name__ == "__main__":
+    chrome_version_env = os.getenv("CHROME_VERSION")
+    try:
+        version_main = int(chrome_version_env) if chrome_version_env else None
+    except ValueError:
+        version_main = None
+
     options = uc.ChromeOptions()
     options.add_argument("--headless")
-    driver = uc.Chrome(options=options, version_main=138)
+    print(f"🌐 Starting Chrome, detected version: {version_main if version_main else 'auto-detect'}")
+    driver = uc.Chrome(options=options, version_main=version_main)
 
     try:
         # Execute all scraping functions and combine results
