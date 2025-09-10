@@ -42,6 +42,7 @@ jobs:
           python parse_data.py > moon_data.json
           echo "✅ Raw moon data collected in moon_data.json"
           ls -la moon_data.json
+          cat moon_data.json
 
       - name: Read JSON to env var
         id: json
